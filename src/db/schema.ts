@@ -1,4 +1,4 @@
-import { pgTable, text, boolean, jsonb, timestamp, integer, uniqueIndex, index, primaryKey } from 'drizzle-orm/pg-core';
+import { pgTable, text, boolean, jsonb, timestamp, integer, uniqueIndex, index, primaryKey, numeric } from 'drizzle-orm/pg-core';
 
 import type {
   BlogPost,
@@ -359,5 +359,196 @@ export const page404LogTable = pgTable(
   (table) => ({
     pathIdx: index('page_404_log_path_idx').on(table.path),
     createdAtIdx: index('page_404_log_created_at_idx').on(table.createdAt)
+  })
+);
+
+
+// ─── Commerce Module ────────────────────────────────────────────────────────
+
+import type {
+  CouponType,
+  OrderStatus,
+  PaymentMethod,
+  PaymentStatus,
+  ProductStatus
+} from '@/features/commerce/types';
+
+export const productCategoriesTable = pgTable(
+  'product_categories',
+  {
+    id: text('id').primaryKey(),
+    name: text('name').notNull(),
+    slug: text('slug').notNull(),
+    description: text('description').notNull().default(''),
+    parentId: text('parent_id'),
+    image: text('image').notNull().default(''),
+    sortOrder: integer('sort_order').notNull().default(0),
+    createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' }).notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'string' }).notNull()
+  },
+  (table) => ({
+    slugUnique: uniqueIndex('product_categories_slug_unique').on(table.slug),
+    parentIdx: index('product_categories_parent_idx').on(table.parentId)
+  })
+);
+
+export const productsTable = pgTable(
+  'products',
+  {
+    id: text('id').primaryKey(),
+    title: text('title').notNull(),
+    slug: text('slug').notNull(),
+    description: text('description').notNull().default(''),
+    shortDescription: text('short_description').notNull().default(''),
+    status: text('status').$type<ProductStatus>().notNull().default('draft'),
+    categoryId: text('category_id'),
+    images: jsonb('images').$type<string[]>().notNull().default([]),
+    featured: boolean('featured').notNull().default(false),
+    sortOrder: integer('sort_order').notNull().default(0),
+    seoTitle: text('seo_title').notNull().default(''),
+    seoDescription: text('seo_description').notNull().default(''),
+    createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' }).notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'string' }).notNull()
+  },
+  (table) => ({
+    slugUnique: uniqueIndex('products_slug_unique').on(table.slug),
+    statusIdx: index('products_status_idx').on(table.status),
+    categoryIdx: index('products_category_idx').on(table.categoryId),
+    featuredIdx: index('products_featured_idx').on(table.featured)
+  })
+);
+
+export const productVariantsTable = pgTable(
+  'product_variants',
+  {
+    id: text('id').primaryKey(),
+    productId: text('product_id').notNull(),
+    sku: text('sku').notNull(),
+    name: text('name').notNull(),
+    price: numeric('price', { precision: 12, scale: 2 }).notNull(),
+    compareAtPrice: numeric('compare_at_price', { precision: 12, scale: 2 }),
+    stock: integer('stock').notNull().default(0),
+    weight: numeric('weight', { precision: 8, scale: 2 }),
+    options: jsonb('options').$type<Record<string, string>>().notNull().default({}),
+    sortOrder: integer('sort_order').notNull().default(0),
+    createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' }).notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'string' }).notNull()
+  },
+  (table) => ({
+    productIdx: index('product_variants_product_idx').on(table.productId),
+    skuUnique: uniqueIndex('product_variants_sku_unique').on(table.sku)
+  })
+);
+
+export const customersTable = pgTable(
+  'customers',
+  {
+    id: text('id').primaryKey(),
+    email: text('email').notNull(),
+    name: text('name').notNull(),
+    phone: text('phone').notNull().default(''),
+    address: text('address').notNull().default(''),
+    city: text('city').notNull().default(''),
+    province: text('province').notNull().default(''),
+    postalCode: text('postal_code').notNull().default(''),
+    totalOrders: integer('total_orders').notNull().default(0),
+    totalSpent: numeric('total_spent', { precision: 14, scale: 2 }).notNull().default('0'),
+    createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' }).notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'string' }).notNull()
+  },
+  (table) => ({
+    emailUnique: uniqueIndex('customers_email_unique').on(table.email)
+  })
+);
+
+export const ordersTable = pgTable(
+  'orders',
+  {
+    id: text('id').primaryKey(),
+    orderNumber: text('order_number').notNull(),
+    customerId: text('customer_id').notNull(),
+    status: text('status').$type<OrderStatus>().notNull().default('pending_payment'),
+    paymentMethod: text('payment_method').$type<PaymentMethod>().notNull(),
+    paymentStatus: text('payment_status').$type<PaymentStatus>().notNull().default('pending'),
+    paymentReference: text('payment_reference'),
+    subtotal: numeric('subtotal', { precision: 14, scale: 2 }).notNull(),
+    discount: numeric('discount', { precision: 14, scale: 2 }).notNull().default('0'),
+    shippingCost: numeric('shipping_cost', { precision: 14, scale: 2 }).notNull().default('0'),
+    total: numeric('total', { precision: 14, scale: 2 }).notNull(),
+    couponId: text('coupon_id'),
+    shippingName: text('shipping_name').notNull(),
+    shippingPhone: text('shipping_phone').notNull(),
+    shippingAddress: text('shipping_address').notNull(),
+    shippingCity: text('shipping_city').notNull(),
+    shippingProvince: text('shipping_province').notNull(),
+    shippingPostalCode: text('shipping_postal_code').notNull(),
+    notes: text('notes').notNull().default(''),
+    createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' }).notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'string' }).notNull()
+  },
+  (table) => ({
+    orderNumberUnique: uniqueIndex('orders_order_number_unique').on(table.orderNumber),
+    customerIdx: index('orders_customer_idx').on(table.customerId),
+    statusIdx: index('orders_status_idx').on(table.status),
+    createdAtIdx: index('orders_created_at_idx').on(table.createdAt)
+  })
+);
+
+export const orderItemsTable = pgTable(
+  'order_items',
+  {
+    id: text('id').primaryKey(),
+    orderId: text('order_id').notNull(),
+    productId: text('product_id').notNull(),
+    variantId: text('variant_id').notNull(),
+    productTitle: text('product_title').notNull(),
+    variantName: text('variant_name').notNull(),
+    sku: text('sku').notNull(),
+    quantity: integer('quantity').notNull(),
+    unitPrice: numeric('unit_price', { precision: 12, scale: 2 }).notNull(),
+    totalPrice: numeric('total_price', { precision: 14, scale: 2 }).notNull()
+  },
+  (table) => ({
+    orderIdx: index('order_items_order_idx').on(table.orderId),
+    productIdx: index('order_items_product_idx').on(table.productId)
+  })
+);
+
+export const inventoryLogsTable = pgTable(
+  'inventory_logs',
+  {
+    id: text('id').primaryKey(),
+    variantId: text('variant_id').notNull(),
+    previousStock: integer('previous_stock').notNull(),
+    newStock: integer('new_stock').notNull(),
+    reason: text('reason').notNull(),
+    orderId: text('order_id'),
+    createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' }).notNull()
+  },
+  (table) => ({
+    variantIdx: index('inventory_logs_variant_idx').on(table.variantId),
+    createdAtIdx: index('inventory_logs_created_at_idx').on(table.createdAt)
+  })
+);
+
+export const couponsTable = pgTable(
+  'coupons',
+  {
+    id: text('id').primaryKey(),
+    code: text('code').notNull(),
+    type: text('type').$type<CouponType>().notNull(),
+    value: numeric('value', { precision: 12, scale: 2 }).notNull(),
+    minOrderAmount: numeric('min_order_amount', { precision: 12, scale: 2 }),
+    maxUses: integer('max_uses'),
+    usedCount: integer('used_count').notNull().default(0),
+    active: boolean('active').notNull().default(true),
+    startsAt: timestamp('starts_at', { withTimezone: true, mode: 'string' }),
+    expiresAt: timestamp('expires_at', { withTimezone: true, mode: 'string' }),
+    createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' }).notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'string' }).notNull()
+  },
+  (table) => ({
+    codeUnique: uniqueIndex('coupons_code_unique').on(table.code),
+    activeIdx: index('coupons_active_idx').on(table.active)
   })
 );

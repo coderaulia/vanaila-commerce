@@ -11,7 +11,11 @@ const permissionsByRole: Record<AdminRole, AdminPermission[]> = {
     'settings:edit',
     'media:edit',
     'taxonomy:edit',
-    'team:manage'
+    'team:manage',
+    'store:view',
+    'store:edit',
+    'store:manage_orders',
+    'store:manage_customers'
   ],
   admin: [
     'dashboard:view',
@@ -22,15 +26,27 @@ const permissionsByRole: Record<AdminRole, AdminPermission[]> = {
     'content:delete',
     'settings:edit',
     'media:edit',
-    'taxonomy:edit'
+    'taxonomy:edit',
+    'store:view',
+    'store:edit',
+    'store:manage_orders',
+    'store:manage_customers'
   ],
   editor: ['dashboard:view', 'content:edit', 'media:edit'],
-  analyst: ['dashboard:view', 'analytics:view', 'audit:view']
+  analyst: ['dashboard:view', 'analytics:view', 'audit:view'],
+  store_manager: [
+    'dashboard:view',
+    'store:view',
+    'store:edit',
+    'store:manage_orders',
+    'store:manage_customers',
+    'media:edit'
+  ]
 };
 
 export function normalizeAdminRole(value: string | null | undefined): AdminRole {
   const normalized = (value ?? '').trim().toLowerCase();
-  if (normalized === 'super_admin' || normalized === 'admin' || normalized === 'editor' || normalized === 'analyst') {
+  if (normalized === 'super_admin' || normalized === 'admin' || normalized === 'editor' || normalized === 'analyst' || normalized === 'store_manager') {
     return normalized as AdminRole;
   }
   return 'analyst';

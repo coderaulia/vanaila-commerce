@@ -23,7 +23,7 @@ export type SectionLayout = 'stacked' | 'split';
 export type BlogStatus = 'draft' | 'published';
 export type PortfolioStatus = 'draft' | 'published';
 export type PublicationStatusLabel = 'draft' | 'scheduled' | 'published' | 'scheduled-unpublish' | 'expired';
-export type AdminRole = 'super_admin' | 'admin' | 'editor' | 'analyst';
+export type AdminRole = 'super_admin' | 'admin' | 'editor' | 'analyst' | 'store_manager';
 export type AdminPermission =
   | 'dashboard:view'
   | 'analytics:view'
@@ -34,7 +34,11 @@ export type AdminPermission =
   | 'settings:edit'
   | 'media:edit'
   | 'taxonomy:edit'
-  | 'team:manage';
+  | 'team:manage'
+  | 'store:view'
+  | 'store:edit'
+  | 'store:manage_orders'
+  | 'store:manage_customers';
 
 export type HomeThemeToken = 'light' | 'blue-soft' | 'mist';
 

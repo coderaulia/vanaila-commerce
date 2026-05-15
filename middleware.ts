@@ -64,7 +64,7 @@ export function middleware(request: NextRequest) {
     });
   }
 
-  if (pathname.startsWith('/admin') || pathname.startsWith('/api/admin') || pathname.startsWith('/api/contact')) {
+  if (pathname.startsWith('/admin') || pathname.startsWith('/api/admin') || pathname.startsWith('/api/contact') || pathname.startsWith('/cart') || pathname.startsWith('/checkout')) {
     response.headers.set('Cache-Control', 'no-store');
   }
 

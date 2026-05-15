@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 
 import { siteProfile } from '@/config/site-profile';
+import { modules } from '@/config/modules';
 import { logoutAdmin } from '@/features/cms/adminClientAuth';
 import type { AdminSessionUser } from '@/features/cms/adminTypes';
 import { formatAdminRoleLabel } from '@/features/cms/adminPermissions';
@@ -28,6 +29,12 @@ const seoLinks: Array<{ href: string; label: string; permission?: AdminPermissio
   { href: '/admin/settings?tab=sitemap', label: 'Sitemaps', permission: 'settings:edit' },
   { href: '/admin/link-checker', label: 'Link Checker', permission: 'analytics:view' },
   { href: '/admin/redirects', label: 'Redirects', permission: 'settings:edit' }
+];
+
+const storeLinks: Array<{ href: string; label: string; permission?: AdminPermission }> = [
+  { href: '/admin/products', label: 'Products', permission: 'store:edit' },
+  { href: '/admin/orders', label: 'Orders', permission: 'store:manage_orders' },
+  { href: '/admin/customers', label: 'Customers', permission: 'store:manage_customers' }
 ];
 
 function initialsForUser(user: AdminSessionUser) {
@@ -120,6 +127,21 @@ export function AdminNav({ user }: AdminNavProps) {
             <p className="admin-side-title">Basic SEO</p>
             <ul className="admin-nav-list">
               {seoLinks.filter((item) => canAccess(item.permission)).map((item) => (
+                <li key={item.label}>
+                  <Link href={item.href} className={`admin-nav-link ${isActive(item.href) ? 'active' : ''}`}>
+                    {item.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </>
+        ) : null}
+
+        {modules.ENABLE_STORE_MODULE && storeLinks.some((item) => canAccess(item.permission)) ? (
+          <>
+            <p className="admin-side-title">Store</p>
+            <ul className="admin-nav-list">
+              {storeLinks.filter((item) => canAccess(item.permission)).map((item) => (
                 <li key={item.label}>
                   <Link href={item.href} className={`admin-nav-link ${isActive(item.href) ? 'active' : ''}`}>
                     {item.label}
