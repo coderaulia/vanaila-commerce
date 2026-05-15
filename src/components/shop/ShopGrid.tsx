@@ -35,69 +35,138 @@ export function ShopGrid() {
       .catch(() => {});
   }, []);
 
-  useEffect(() => { fetchProducts(); }, [fetchProducts]);
+  useEffect(() => {
+    fetchProducts();
+  }, [fetchProducts]);
 
   const totalPages = data ? Math.ceil(data.meta.total / data.meta.pageSize) : 0;
 
   return (
-    <div className="shop-container">
-      <div className="shop-filters">
-        <input
-          type="search"
-          placeholder="Search products..."
-          value={q}
-          onChange={(e) => { setQ(e.target.value); setPage(1); }}
-          className="shop-search"
-          aria-label="Search products"
-        />
-        {categories.length > 0 && (
-          <select
-            value={categoryId}
-            onChange={(e) => { setCategoryId(e.target.value); setPage(1); }}
-            className="shop-category-filter"
-            aria-label="Filter by category"
-          >
-            <option value="">All Categories</option>
-            {categories.map((cat) => (
-              <option key={cat.id} value={cat.id}>{cat.name}</option>
-            ))}
-          </select>
-        )}
-      </div>
+    <section className="py-20 border-t border-gray-200">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex flex-col sm:flex-row gap-4 mb-10">
+          <input
+            type="search"
+            placeholder="Search products..."
+            value={q}
+            onChange={(e) => {
+              setQ(e.target.value);
+              setPage(1);
+            }}
+            aria-label="Search products"
+            className="flex-1 border border-gray-200 px-4 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-black rounded-sm"
+          />
+          {categories.length > 0 && (
+            <select
+              value={categoryId}
+              onChange={(e) => {
+                setCategoryId(e.target.value);
+                setPage(1);
+              }}
+              aria-label="Filter by category"
+              className="border border-gray-200 px-4 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-black rounded-sm bg-white"
+            >
+              <option value="">All Categories</option>
+              {categories.map((cat) => (
+                <option key={cat.id} value={cat.id}>
+                  {cat.name}
+                </option>
+              ))}
+            </select>
+          )}
+        </div>
 
-      {loading ? (
-        <p className="shop-loading">Loading products...</p>
-      ) : !data?.products.length ? (
-        <p className="shop-empty">No products found.</p>
-      ) : (
-        <>
-          <div className="shop-grid">
-            {data.products.map((product) => (
-              <Link key={product.id} href={`/shop/${product.slug}`} className="shop-card">
-                {product.images[0] && (
-                  <div className="shop-card-image">
-                    <img src={product.images[0]} alt={product.title} loading="lazy" />
-                  </div>
-                )}
-                <div className="shop-card-body">
-                  <h3 className="shop-card-title">{product.title}</h3>
-                  {product.shortDescription && (
-                    <p className="shop-card-desc">{product.shortDescription}</p>
-                  )}
-                </div>
-              </Link>
+        {loading ? (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div key={i}>
+                <div className="aspect-[3/4] bg-gray-100 animate-pulse rounded-sm mb-3" />
+                <div className="h-4 bg-gray-100 animate-pulse rounded mb-2 w-2/3" />
+                <div className="h-4 bg-gray-100 animate-pulse rounded w-1/3" />
+              </div>
             ))}
           </div>
-
-          {totalPages > 1 && (
-            <div className="shop-pagination">
-              <button type="button" disabled={page <= 1} onClick={() => setPage(page - 1)}>Previous</button>
-              <span>Page {page} of {totalPages}</span>
-              <button type="button" disabled={page >= totalPages} onClick={() => setPage(page + 1)}>Next</button>
+        ) : !data?.products.length ? (
+          <div className="text-center py-20 text-gray-400">
+            <p className="text-lg font-medium">No products found.</p>
+            <p className="text-sm mt-2">Try a different search or category.</p>
+          </div>
+        ) : (
+          <>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+              {data.products.map((product) => {
+                const variant = product.variants?.[0];
+                return (
+                  <Link
+                    key={product.id}
+                    href={`/shop/${product.slug}`}
+                    className="group no-underline text-black"
+                  >
+                    <div className="relative aspect-[3/4] overflow-hidden bg-gray-100 rounded-sm mb-3">
+                      {product.images[0] ? (
+                        <img
+                          src={product.images[0]}
+                          alt={product.title}
+                          className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                          loading="lazy"
+                        />
+                      ) : (
+                        <div className="absolute inset-0 bg-gray-200" />
+                      )}
+                    </div>
+                    <h3 className="font-semibold text-sm mb-1">{product.title}</h3>
+                    {product.shortDescription && (
+                      <p className="text-gray-400 text-xs mb-1 line-clamp-1">
+                        {product.shortDescription}
+                      </p>
+                    )}
+                    {variant && (
+                      <div className="flex items-center gap-2 text-sm">
+                        {variant.compareAtPrice && variant.compareAtPrice > variant.price ? (
+                          <>
+                            <span className="text-red-600 font-medium">
+                              Rp {variant.price.toLocaleString('id-ID')}
+                            </span>
+                            <span className="text-gray-400 line-through text-xs">
+                              Rp {variant.compareAtPrice.toLocaleString('id-ID')}
+                            </span>
+                          </>
+                        ) : (
+                          <span>Rp {variant.price.toLocaleString('id-ID')}</span>
+                        )}
+                      </div>
+                    )}
+                  </Link>
+                );
+              })}
             </div>
-          )}
-        </>
-      )}
-    </div>
+
+            {totalPages > 1 && (
+              <div className="flex justify-center items-center gap-4 mt-12">
+                <button
+                  type="button"
+                  disabled={page <= 1}
+                  onClick={() => setPage(page - 1)}
+                  className="px-5 py-2 border border-gray-300 text-sm font-medium hover:border-black transition-colors disabled:opacity-40 disabled:cursor-not-allowed rounded-sm"
+                >
+                  ← Previous
+                </button>
+                <span className="text-sm text-gray-500">
+                  {page} / {totalPages}
+                </span>
+                <button
+                  type="button"
+                  disabled={page >= totalPages}
+                  onClick={() => setPage(page + 1)}
+                  className="px-5 py-2 border border-gray-300 text-sm font-medium hover:border-black transition-colors disabled:opacity-40 disabled:cursor-not-allowed rounded-sm"
+                >
+                  Next →
+                </button>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </section>
   );
 }

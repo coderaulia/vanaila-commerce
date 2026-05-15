@@ -1,11 +1,15 @@
 import { notFound, redirect } from 'next/navigation';
 
+import { modules } from '@/config/modules';
 import { VanailaRedesignHome } from '@/components/home/VanailaRedesignHome';
 import { MarketingPageRenderer } from '@/components/MarketingPageRenderer';
 import { buildMetadata } from '@/features/cms/seo';
 import { getPublishedPage, getPublishedPortfolioProjects, getSiteSettings } from '@/features/cms/publicApi';
 
 export async function generateMetadata() {
+  if (modules.ENABLE_STORE_MODULE) {
+    return { title: 'Shop' };
+  }
   const [settings, page] = await Promise.all([getSiteSettings(), getPublishedPage('home')]);
   if (!page) {
     return {
@@ -16,6 +20,10 @@ export async function generateMetadata() {
 }
 
 export default async function HomePage() {
+  if (modules.ENABLE_STORE_MODULE) {
+    redirect('/shop');
+  }
+
   const [settings, homePage, projects] = await Promise.all([
     getSiteSettings(),
     getPublishedPage('home'),

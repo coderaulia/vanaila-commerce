@@ -50,8 +50,10 @@ function getSnapshot(): CartState {
   return state;
 }
 
+const EMPTY_CART: CartState = { items: [], couponCode: null };
+
 function getServerSnapshot(): CartState {
-  return { items: [], couponCode: null };
+  return EMPTY_CART;
 }
 
 function subscribe(listener: () => void): () => void {
