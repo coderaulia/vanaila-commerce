@@ -57,15 +57,23 @@ src/
     contact/          # Contact page
     portfolio/        # Portfolio listing + project detail
     service/          # Service listing page
+    shop/             # Public store (feature-flagged)
+    cart/             # Shopping cart
+    checkout/         # Checkout flow
     [slug]/           # Catch-all for dynamic CMS pages (partnership, product-hris, etc.)
     admin/            # Admin shell and all admin pages
+    admin/products/   # Admin product management
+    admin/orders/     # Admin order management
+    admin/customers/  # Admin customer list
     api/admin/        # REST API (requires auth)
+    api/store/        # Public store API (products, checkout, payment webhooks)
     api/public/       # Public REST API (contact form, etc.)
   components/
     admin/            # Admin UI components
     animations/       # Vanaila design system primitives: Reveal, StaggerGroup
     home/blocks/      # Typed homepage block components (hero, value_triplet, etc.)
     pages/            # Per-page view components (AboutPageView, ServicePageView, etc.)
+    shop/             # Store UI components (ShopGrid, ProductDetail)
     ui/               # Generic reusable UI
     AppShell.tsx      # Public layout wrapper (SiteHeader + SiteFooter + CustomCursor)
     CustomCursor.tsx  # Branded custom cursor (Vanaila design system)
@@ -81,10 +89,16 @@ src/
     publicCache.ts    # Next.js ISR revalidation
     adminAuth.ts      # Sessions, password hashing, audit logs, lockouts
     validators.ts     # Input validation — return null on failure (callers check null → 400)
-    types.ts          # Core types: BlogPost, Page, PortfolioProject, etc.
+    types.ts          # Core types: BlogPost, Page, PortfolioProject, AdminRole, etc.
     seo.ts            # SEO metadata builder
+  features/commerce/  # E-commerce module (behind ENABLE_STORE_MODULE flag)
+    types.ts          # Product, Order, Customer, Cart types
+    store.ts          # Data access layer (Drizzle queries)
+    checkout.ts       # Checkout orchestration + Midtrans integration
+    orderEmail.ts     # Order emails via Resend
+    cartStore.ts      # Client-side cart (useSyncExternalStore + localStorage)
   db/
-    schema.ts         # Drizzle schema (all tables)
+    schema.ts         # Drizzle schema (all tables including commerce)
     client.ts         # Pool config (2 conns build / 5 prod / 4 dev)
   services/
     env.ts            # All env var parsing lives here
@@ -92,6 +106,7 @@ src/
     requestSecurity.ts # CSRF, rate limiting, client ID
   config/
     site-profile.ts   # Brand, navigation, routing config — customize per client
+    modules.ts        # Feature flags (ENABLE_STORE_MODULE)
 ```
 
 ### Data flow
@@ -131,7 +146,7 @@ When modifying public pages, keep animation and layout classes consistent with e
 
 - Cookie-based sessions (`cms_admin_session`, httpOnly, 7-day TTL)
 - scrypt password hashing (100k iterations)
-- Roles: `super_admin | admin | editor | analyst` with action-gated permissions (`content:edit`, `settings:manage`, `team:manage`)
+- Roles: `super_admin | admin | editor | analyst | store_manager` with action-gated permissions (`content:edit`, `settings:manage`, `team:manage`, `store:edit`, `store:manage_orders`, `store:manage_customers`)
 - Login lockout after 5 failures (15-min window)
 - CSRF: token in cookie, must be sent as header on POST/PUT/DELETE
 - First-run bootstrap: if `admin_users` table empty, creates admin from `CMS_ADMIN_EMAIL` + `CMS_ADMIN_PASSWORD` env vars
@@ -152,3 +167,31 @@ Tests live in `src/tests/`. Uses jsdom environment. `vitest.setup.ts` mocks `Int
 ### Client generation
 
 `npm run bootstrap:client -- --output ../acme-cms --site-name "Name"` scaffolds a new client site from this repo. Entry point: `src/features/bootstrap/`.
+
+
+### Commerce module
+
+The store module is behind `ENABLE_STORE_MODULE=true` (env var, read in `src/config/modules.ts`). When disabled, all store routes return 404 and admin nav hides store sections.
+
+**Data flow:**
+
+```txt
+Public checkout:
+  /checkout page → POST /api/store/checkout → checkout.ts → store.ts (order + items + stock) → orderEmail.ts
+
+Payment webhook:
+  Midtrans → POST /api/store/payment/midtrans → verify signature → updatePaymentStatus
+
+Admin order management:
+  /admin/orders/[id] → PUT /api/admin/orders/[id] → assertAdminPermission('store:manage_orders') → updateOrderStatus → sendOrderStatusEmail
+```
+
+**Cart:** Client-side only via `useSyncExternalStore` in `src/features/commerce/cartStore.ts`. Persisted to localStorage. No server-side cart state.
+
+**Payments:** Midtrans Snap API (redirect flow) + manual bank transfer. Webhook verifies SHA-512 signature.
+
+**Emails:** Resend API for order confirmation and status updates. Fails silently.
+
+**Tables:** `products`, `product_variants`, `product_categories`, `orders`, `order_items`, `customers`, `inventory_logs`, `coupons` — all in `src/db/schema.ts`.
+
+**RBAC:** `store_manager` role has `store:view`, `store:edit`, `store:manage_orders`, `store:manage_customers`, `media:edit`. `super_admin` and `admin` also get all store permissions.

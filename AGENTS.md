@@ -113,13 +113,14 @@ export function validateXxx(payload: unknown): Xxx | null {
 ```
 src/
   app/              # Next.js App Router (pages, api routes, sitemap, robots)
-  components/       # React components (ui/, home/blocks/, admin/, forms/)
+  components/       # React components (ui/, home/blocks/, admin/, forms/, shop/)
   db/               # Drizzle schema and client
-  features/cms/      # Core CMS logic (store, validators, types, auth)
+  features/cms/     # Core CMS logic (store, validators, types, auth)
+  features/commerce/ # E-commerce module (store, checkout, cart, email)
   lib/              # Utilities (utils.ts, clientCsrf.ts, analyticsClient.ts)
   services/         # Service layer (env.ts, mediaStorage.ts, requestSecurity.ts)
   tests/            # Vitest tests
-  config/           # Site configuration (site-profile.ts)
+  config/           # Site configuration (site-profile.ts, modules.ts)
 data/
   content.json       # Local file store (gitignored)
 ```
@@ -148,3 +149,57 @@ data/
 - Always validate/sanitize untrusted input with validators
 - Use `asSafeHref` and `asSafeAssetUrl` for URL fields
 - Contact submission webhooks include token verification
+
+## Commerce Module
+
+The store module is gated by `ENABLE_STORE_MODULE=true` env var (read in `src/config/modules.ts`).
+
+### Feature Flag Pattern
+```typescript
+import { modules } from '@/config/modules';
+
+// In API routes:
+if (!modules.ENABLE_STORE_MODULE) {
+  return NextResponse.json({ error: 'Store module disabled' }, { status: 404 });
+}
+
+// In pages:
+if (!modules.ENABLE_STORE_MODULE) notFound();
+```
+
+### Commerce Structure
+```
+src/features/commerce/
+  types.ts          # Product, Order, Customer, Cart, Coupon types
+  store.ts          # Data access (Drizzle queries for all commerce tables)
+  checkout.ts       # Checkout orchestration + Midtrans Snap API
+  orderEmail.ts     # Order emails via Resend (fails silently)
+  cartStore.ts      # Client cart (useSyncExternalStore + localStorage)
+```
+
+### Commerce API Routes
+- `GET/POST /api/admin/products` — Product list/create (requires `store:edit`)
+- `GET/PUT/DELETE /api/admin/products/[id]` — Product CRUD (requires `store:edit`)
+- `POST/PUT/DELETE /api/admin/products/[id]/variants` — Variant management
+- `GET /api/admin/orders` — Order list (requires `store:manage_orders`)
+- `GET/PUT /api/admin/orders/[id]` — Order detail/status update
+- `GET /api/admin/customers` — Customer list (requires `store:manage_customers`)
+- `GET /api/store/products` — Public product listing (active only)
+- `GET /api/store/products/[slug]` — Public product detail
+- `GET /api/store/categories` — Public category list
+- `POST /api/store/checkout` — Place order
+- `POST /api/store/payment/midtrans` — Midtrans webhook
+
+### Roles & Permissions
+- `store_manager` role: `dashboard:view`, `store:view`, `store:edit`, `store:manage_orders`, `store:manage_customers`, `media:edit`
+- `super_admin` and `admin` also have all store permissions
+
+### Environment Variables (Commerce)
+```bash
+ENABLE_STORE_MODULE=true          # Enable the store module
+MIDTRANS_SERVER_KEY=              # Midtrans server key
+MIDTRANS_CLIENT_KEY=              # Midtrans client key (for frontend)
+MIDTRANS_PRODUCTION=false         # true for production Midtrans
+RESEND_API_KEY=                   # Resend email API key
+RESEND_FROM_EMAIL=orders@x.com    # Sender address for order emails
+```

@@ -83,12 +83,13 @@ src/app/admin/*
 ```txt
 src/
   app/              # public pages, admin pages, API routes, sitemap, robots
-  components/       # public UI, admin UI, forms, home blocks, page views
-  config/           # site profile and client-facing config
+  components/       # public UI, admin UI, forms, home blocks, page views, shop
+  config/           # site profile, feature flags (modules.ts)
   db/               # Drizzle schema and database client
   features/
     bootstrap/      # client starter generator
     cms/            # CMS types, stores, validators, auth, SEO, analytics
+    commerce/       # E-commerce: products, orders, checkout, cart, emails
   lib/              # shared utilities
   services/         # env parsing, media storage, request security
   tests/            # Vitest tests
@@ -217,7 +218,7 @@ Admin uses cookie sessions in database mode. The first login can bootstrap an ad
 
 Core protections:
 
-- role-based permissions
+- role-based permissions (`super_admin`, `admin`, `editor`, `analyst`, `store_manager`)
 - CSRF checks for state-changing requests
 - same-origin mutation checks
 - login lockouts
@@ -238,3 +239,104 @@ Runtime provider priority:
 Production should use R2 or Supabase Storage. Local disk is only a fallback for development or simple self-hosted environments with persistent storage.
 
 Uploaded media is size-limited, MIME-checked, tracked in the media library, and protected from deletion while still referenced by content.
+
+
+## Commerce Module
+
+The e-commerce module is optional and controlled by the `ENABLE_STORE_MODULE` environment variable. When disabled, all commerce routes return 404.
+
+### Feature Flag
+
+```ts
+// src/config/modules.ts
+export const modules = {
+  get ENABLE_STORE_MODULE() {
+    return process.env.ENABLE_STORE_MODULE === 'true';
+  }
+};
+```
+
+### Database Tables
+
+| Table | Purpose |
+|-------|---------|
+| `product_categories` | Hierarchical product categories |
+| `products` | Product catalog (title, slug, status, images, SEO) |
+| `product_variants` | SKU-level pricing, stock, weight, options |
+| `customers` | Customer records with aggregated order stats |
+| `orders` | Order header (shipping, payment, totals, status) |
+| `order_items` | Line items per order |
+| `inventory_logs` | Stock change audit trail |
+| `coupons` | Discount codes (percentage or fixed amount) |
+
+### Public Store API
+
+```
+GET  /api/store/products          # Active products (paginated, filterable)
+GET  /api/store/products/[slug]   # Single product with variants
+GET  /api/store/categories        # All product categories
+POST /api/store/checkout          # Place order
+POST /api/store/payment/midtrans  # Midtrans webhook (signature-verified)
+```
+
+### Admin Store API
+
+All admin store routes require authentication and appropriate permissions.
+
+```
+GET/POST    /api/admin/products              # List/create (store:edit)
+GET/PUT/DEL /api/admin/products/[id]         # CRUD (store:edit)
+POST/PUT/DEL /api/admin/products/[id]/variants # Variant management (store:edit)
+GET         /api/admin/orders                # List (store:manage_orders)
+GET/PUT     /api/admin/orders/[id]           # Detail/status update (store:manage_orders)
+GET         /api/admin/customers             # List (store:manage_customers)
+```
+
+### Payment Flow
+
+**Midtrans (online):**
+
+1. Customer submits checkout → `processCheckout()` creates order + calls Midtrans Snap API
+2. Customer is redirected to Midtrans payment page
+3. Midtrans sends webhook to `/api/store/payment/midtrans`
+4. Webhook verifies SHA-512 signature and updates payment/order status
+
+**Manual transfer:**
+
+1. Customer submits checkout → order created with `pending_payment` status
+2. Customer sees bank transfer instructions on confirmation page
+3. Admin confirms payment in order detail → status moves to `paid`
+
+### Cart Architecture
+
+Client-side only. Uses React `useSyncExternalStore` with localStorage persistence. No server-side cart state. Key: `vanaila_cart`.
+
+### Order Emails
+
+Sent via Resend API. Two email types:
+
+- Order confirmation (on checkout)
+- Status update (on admin status change)
+
+Both fail silently — email failures never block order processing.
+
+### RBAC
+
+New role `store_manager` with permissions:
+
+- `store:view` — view store admin sections
+- `store:edit` — create/edit/delete products and variants
+- `store:manage_orders` — view and update order status
+- `store:manage_customers` — view customer list
+
+`super_admin` and `admin` roles also receive all store permissions.
+
+### Public Routes
+
+| Route | Type | Description |
+|-------|------|-------------|
+| `/shop` | Dynamic | Product grid with search and category filter |
+| `/shop/[slug]` | Dynamic | Product detail with variant selection |
+| `/cart` | Client | Shopping cart (client-side state) |
+| `/checkout` | Client | Checkout form |
+| `/shop/order/[id]` | Dynamic | Order confirmation |

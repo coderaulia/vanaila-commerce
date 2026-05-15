@@ -2,7 +2,7 @@
 
 Production-ready CMS starter for marketing websites, built with Next.js App Router, TypeScript, Drizzle ORM, and a reusable admin surface.
 
-The app ships with editable public pages, blog, portfolio/case studies, media management, SEO controls, contact leads, analytics, audit logs, revision restore, scheduled publishing, and role-based admin access.
+The app ships with editable public pages, blog, portfolio/case studies, media management, SEO controls, contact leads, analytics, audit logs, revision restore, scheduled publishing, role-based admin access, and an optional e-commerce store module.
 
 ## Production Stack
 
@@ -116,6 +116,41 @@ Expected production validation:
 9. Confirm sitemap, robots, metadata, and indexing settings.
 10. Run a final `npm run check` and `npm run build`.
 
+## Store Module (Optional)
+
+The commerce module adds products, orders, customers, inventory, and coupons behind a feature flag.
+
+Enable it:
+
+```bash
+ENABLE_STORE_MODULE=true
+```
+
+After enabling, generate and apply the new tables:
+
+```bash
+npm run db:generate
+npm run db:migrate
+```
+
+For payment processing, configure Midtrans:
+
+```bash
+MIDTRANS_SERVER_KEY=your-server-key
+MIDTRANS_CLIENT_KEY=your-client-key
+MIDTRANS_PRODUCTION=false
+```
+
+For order notification emails, configure Resend:
+
+```bash
+RESEND_API_KEY=your-api-key
+RESEND_FROM_EMAIL=orders@yourdomain.com
+```
+
+Public routes: `/shop`, `/shop/[slug]`, `/cart`, `/checkout`  
+Admin sections: Products, Orders, Customers (requires `store_manager`, `admin`, or `super_admin` role)
+
 ## Common Commands
 
 ```bash
@@ -135,6 +170,7 @@ npm run bootstrap:client -- --output ../acme-cms --site-name "Acme Studio"
 - [Deployment handoff](./docs/deployment-handoff.md)
 - [Admin usage guide](./docs/admin-usage.md)
 - [Technical reference](./docs/technical-reference.md)
+- [Implementation plan](./docs/implementation-plan.md) — security audit + commerce module plan
 - [Client reuse playbook](./docs/client-reuse-playbook.md)
 - [Supabase + Hostinger setup](./docs/supabase-hostinger-setup.md)
 - [Security hardening notes](./docs/security-hardening.md)

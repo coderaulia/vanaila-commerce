@@ -6,7 +6,8 @@ This folder holds the detailed operating docs for Vanaila CMS. Keep the root `RE
 
 - [Admin usage guide](./admin-usage.md) - admin modules, publishing workflows, media library, analytics, audit, and team management.
 - [Deployment handoff](./deployment-handoff.md) - production environment variables, build checks, database/media cutover, and handoff checklist.
-- [Technical reference](./technical-reference.md) - architecture, content model, API notes, SEO behavior, and important commands.
+- [Technical reference](./technical-reference.md) - architecture, content model, API notes, SEO behavior, commerce module, and important commands.
+- [Implementation plan](./implementation-plan.md) - security audit findings and commerce module implementation plan.
 - [Client reuse playbook](./client-reuse-playbook.md) - how to turn this repo into a new client starter without losing admin workflows.
 - [Supabase + Hostinger setup](./supabase-hostinger-setup.md) - concrete Supabase Postgres, Supabase Storage, and Hostinger deployment flow.
 - [Security hardening notes](./security-hardening.md) - implemented protections and pre-launch recommendations.
