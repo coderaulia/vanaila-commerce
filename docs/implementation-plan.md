@@ -414,12 +414,12 @@ When `false`:
 
 ## Backlog
 
-| Item | Effort |
-|------|--------|
-| Add rate limiting to `/api/store/checkout` | S |
-| Add input length caps to checkout payload | S |
-| Shipping cost calculation integration | M |
-| Product reviews/ratings | L |
-| Inventory low-stock alerts | S |
-| Order export (CSV) | S |
-| "Sign out all devices" button in admin profile UI | S |
+| Item | Effort | Status |
+|------|--------|--------|
+| Add rate limiting to `/api/store/checkout` | S | ✅ Done — 10 req/min per IP |
+| Add input length caps to checkout payload | S | ✅ Done — all string fields capped |
+| "Sign out all devices" button in admin profile UI | S | ✅ Done — sidebar footer button |
+| Shipping cost calculation integration | M | — |
+| Product reviews/ratings | L | — |
+| Inventory low-stock alerts | S | — |
+| Order export (CSV) | S | — |

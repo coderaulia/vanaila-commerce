@@ -76,3 +76,15 @@ export async function logoutAdmin() {
   });
   cachedSessionUser = null;
 }
+
+export async function logoutAllDevices(): Promise<{ error: string | null }> {
+  const response = await csrfFetch('/api/admin/auth/logout-all', {
+    method: 'POST'
+  });
+  cachedSessionUser = null;
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+    return { error: payload?.error ?? 'Failed to sign out all devices.' };
+  }
+  return { error: null };
+}

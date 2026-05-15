@@ -5,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 
 import { siteProfile } from '@/config/site-profile';
 import { modules } from '@/config/modules';
-import { logoutAdmin } from '@/features/cms/adminClientAuth';
+import { logoutAdmin, logoutAllDevices } from '@/features/cms/adminClientAuth';
 import type { AdminSessionUser } from '@/features/cms/adminTypes';
 import { formatAdminRoleLabel } from '@/features/cms/adminPermissions';
 import type { AdminPermission } from '@/features/cms/types';
@@ -58,6 +58,13 @@ export function AdminNav({ user }: AdminNavProps) {
 
   const handleLogout = async () => {
     await logoutAdmin();
+    router.replace('/admin/login');
+    router.refresh();
+  };
+
+  const handleLogoutAll = async () => {
+    if (!confirm('Sign out from all devices? You will be redirected to the login page.')) return;
+    await logoutAllDevices();
     router.replace('/admin/login');
     router.refresh();
   };
@@ -165,6 +172,9 @@ export function AdminNav({ user }: AdminNavProps) {
 
         <button type="button" className="admin-logout" onClick={handleLogout}>
           Logout
+        </button>
+        <button type="button" className="admin-logout admin-logout-all" onClick={handleLogoutAll}>
+          Sign out all devices
         </button>
       </div>
     </aside>
