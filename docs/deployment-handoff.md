@@ -38,6 +38,14 @@ Cloudflare R2 media storage (option B — takes priority over Supabase if all fi
 Storage quota (applies to all providers):
 - `CMS_STORAGE_QUOTA_MB` — total media storage cap in MB, default `1000` (1 GB). Set to `900` for Supabase free tier safety margin, `10000` for R2 free tier.
 
+Commerce module (optional — set `ENABLE_STORE_MODULE=true` to activate):
+- `ENABLE_STORE_MODULE` — `true` to enable the store
+- `MIDTRANS_SERVER_KEY` — Midtrans server key for payment processing
+- `MIDTRANS_CLIENT_KEY` — Midtrans client key for frontend Snap
+- `MIDTRANS_PRODUCTION` — `true` for production Midtrans environment
+- `RESEND_API_KEY` — Resend API key for order notification emails
+- `RESEND_FROM_EMAIL` — sender address for order emails (default: `orders@example.com`)
+
 ## Connection Strategy
 
 Recommended split for Supabase:
@@ -104,10 +112,17 @@ Important:
 7. Verify revision restore works for settings and at least one content type.
 8. Verify scheduled publish/unpublish behavior if your team uses scheduling.
 9. Verify old `/media/...` and `/portfolio/...` assets have been migrated or rewritten.
-10. Train content team on:
-   - page/post/portfolio editing
-   - preview and scheduling
-   - media upload + replacement
-   - revision restore
-   - settings usage
-   - analytics and audit review
+10. If store module is enabled:
+    - Verify `/shop` loads and displays active products.
+    - Test a checkout flow (Midtrans sandbox or manual transfer).
+    - Verify order confirmation email arrives.
+    - Verify admin can update order status.
+    - Create a `store_manager` user if a dedicated store operator is needed.
+11. Train content team on:
+    - page/post/portfolio editing
+    - preview and scheduling
+    - media upload + replacement
+    - revision restore
+    - settings usage
+    - analytics and audit review
+    - store management (if enabled): product creation, order fulfillment, payment confirmation

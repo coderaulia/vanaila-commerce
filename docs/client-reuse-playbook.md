@@ -81,8 +81,9 @@ The starter already includes:
 - analytics + conversion tracking
 - audit log
 - role-based admin team management
+- **e-commerce store module** (optional, behind `ENABLE_STORE_MODULE` flag)
 
-For a new client, remove or ignore modules only when the client genuinely does not need them.
+For a new client, remove or ignore modules only when the client genuinely does not need them. The store module is disabled by default and adds no overhead when off.
 
 ## 5) Define Client Content Model
 
@@ -129,7 +130,8 @@ Current reusable admin capabilities:
 - media upload / duplicate detection / replace-in-place / usage checks
 - analytics summary and conversion reporting
 - audit log
-- team management with `super_admin`, `admin`, `editor`, and `analyst`
+- team management with `super_admin`, `admin`, `editor`, `analyst`, and `store_manager`
+- **store module**: products, orders, customers (when `ENABLE_STORE_MODULE=true`)
 
 For client projects with only one operator:
 - keep one `super_admin`
@@ -138,6 +140,12 @@ For client projects with only one operator:
 For client projects with multiple editors:
 - keep team management enabled
 - validate permissions before handoff
+
+For client projects that need e-commerce:
+- set `ENABLE_STORE_MODULE=true`
+- run `npm run db:generate && npm run db:migrate` to create commerce tables
+- configure Midtrans and/or Resend env vars
+- assign `store_manager` role to dedicated store operators
 
 ## 9) Media Strategy
 
@@ -177,3 +185,8 @@ npm run build
 6. Team roles configured if the client has multiple operators.
 7. Analytics and audit access confirmed for the handoff team.
 8. Revision restore tested at least once before handoff.
+9. If store module enabled:
+   - Products created and set to active.
+   - Checkout flow tested end-to-end (Midtrans sandbox + manual transfer).
+   - Order email delivery confirmed.
+   - Store manager role assigned if needed.

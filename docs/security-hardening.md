@@ -10,7 +10,7 @@
 - Database-backed rate limiting when `DATABASE_URL` is available, with in-memory fallback if the database is unavailable
 - Admin login lockout protection
 - Server-side audit logging for admin mutations
-- Role-based permissions for `super_admin`, `admin`, `editor`, and `analyst`
+- Role-based permissions for `super_admin`, `admin`, `editor`, `analyst`, and `store_manager`
 - Site-wide security headers via `middleware.ts`
 - `no-store` cache policy on sensitive admin/contact responses
 - JSON-LD serialization hardened to escape script-breaking characters
@@ -23,6 +23,9 @@
 - No browser-storage admin sessions in the production path
 - Admin shell remains isolated from the public shell
 - Audit trails exist for content, settings, media, auth, and team mutations
+- Commerce module gated behind feature flag — zero attack surface when disabled
+- Midtrans webhook verifies SHA-512 signature before processing payment status
+- Order emails fail silently — never block checkout or order processing
 
 ## Still Recommended Before Public Launch
 
@@ -32,6 +35,17 @@
 - Add monitoring and alerting for production failures
 - Add backup/export procedures for CMS content and media references
 - Review production env vars for placeholder values and test credentials
+
+### Commerce Module (when enabled)
+
+- Add rate limiting to `/api/store/checkout` (public endpoint, abuse vector)
+- Add input length caps to checkout payload fields
+- Verify Midtrans webhook signature validation is working (test with sandbox)
+- Ensure `MIDTRANS_SERVER_KEY` is not exposed in client bundles (server-only)
+- Consider adding CSRF protection to the checkout endpoint for logged-in users
+- Product descriptions use `dangerouslySetInnerHTML` — safe when only admin-authored, but sanitize if user-generated content is ever allowed
+- Coupon codes should be rate-limited to prevent brute-force enumeration
+- Stock deduction is not wrapped in a database transaction — under extreme concurrency, consider adding `SELECT ... FOR UPDATE` on variant rows
 
 ## Operational Note
 

@@ -8,10 +8,11 @@ This guide reflects the current admin surface in this repository.
 2. Sign in with `CMS_ADMIN_EMAIL` and `CMS_ADMIN_PASSWORD` from `.env.local` or production env.
 3. In database mode, the first successful login bootstraps the first admin user if `admin_users` is empty.
 4. Access is role-based:
-   - `super_admin`: full access, including Team management
-   - `admin`: content, settings, media, analytics, audit
+   - `super_admin`: full access, including Team management and Store
+   - `admin`: content, settings, media, analytics, audit, store
    - `editor`: content + media
    - `analyst`: dashboard + analytics + audit
+   - `store_manager`: dashboard + store (products, orders, customers) + media
 
 ## Sidebar Modules
 
@@ -25,13 +26,17 @@ Current admin navigation:
 - Categories
 - Media Library
 - Team
+- Sessions
 - Analytics
 - Audit Log
-- Settings shortcuts for Discussion, Permalinks, Meta Tags, and Sitemaps
+- Manual
+- Settings shortcuts for Discussion, Permalinks, Meta Tags, Sitemaps, and Redirects
+- **Store** (when `ENABLE_STORE_MODULE=true`): Products, Orders, Customers
 
 Note:
 - Comment controls live under `Settings -> Discussion`.
 - There is no separate comments moderation screen yet.
+- Store section only appears when the commerce module is enabled and the user has store permissions.
 
 ## Dashboard
 
@@ -195,6 +200,64 @@ Current team management supports:
 - delete admin users
 - block self-delete
 - block removing the last `super_admin`
+
+## Store Module (Commerce)
+
+The store module is available when `ENABLE_STORE_MODULE=true` is set. It adds three admin sections: Products, Orders, and Customers.
+
+### Products
+
+Go to `/admin/products`.
+
+Current product management:
+- create, edit, and delete products
+- set status: draft, active, or archived (only active products appear in the public shop)
+- mark products as featured
+- manage product variants (each variant has its own SKU, price, compare-at price, stock, and weight)
+- set product images, description, short description, and SEO fields
+- filter by status, search by title
+- paginated list view
+
+Product variants:
+- each product needs at least one variant to be purchasable
+- variants track individual stock levels
+- stock is automatically deducted on checkout
+- inventory changes are logged in `inventory_logs`
+
+### Orders
+
+Go to `/admin/orders`.
+
+Current order management:
+- view all orders with status, payment status, customer name, and total
+- filter by order status
+- search by order number or customer name
+- view order detail with line items, totals, and shipping info
+- update order status through the fulfillment flow: pending_payment → paid → processing → shipped → delivered
+- confirm manual bank transfer payments
+- cancel orders
+- status change emails are sent automatically to the customer
+
+### Customers
+
+Go to `/admin/customers`.
+
+Current customer view:
+- list all customers with name, email, phone, order count, and total spent
+- search by name or email
+- paginated list view
+
+Customers are created automatically during checkout. There is no manual customer creation in admin.
+
+### Store Roles
+
+| Role | Products | Orders | Customers |
+|------|----------|--------|-----------|
+| `super_admin` | Full | Full | View |
+| `admin` | Full | Full | View |
+| `store_manager` | Full | Full | View |
+| `editor` | — | — | — |
+| `analyst` | — | — | — |
 
 ## Publishing Checklist
 
