@@ -55,6 +55,11 @@ export async function notifyContactSubmission(submission: ContactSubmission) {
       status: response.status,
       statusText: response.statusText
     };
+  } catch (err) {
+    // Log only the error message — never log headers or the Authorization token
+    const message = err instanceof Error ? err.message : 'unknown error';
+    console.error('[contact-notification] Webhook delivery failed:', message);
+    return { delivered: false };
   } finally {
     clearTimeout(timeout);
   }

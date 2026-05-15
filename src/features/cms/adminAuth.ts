@@ -153,6 +153,12 @@ function hashSessionToken(token: string) {
 export async function hashAdminPassword(password: string) {
   const salt = randomBytes(16).toString('hex');
   const derived = (await scrypt(password, salt, 64)) as Buffer;
+  const pepper = env.passwordPepper;
+  if (pepper) {
+    const pepperBuf = Buffer.from(pepper, 'hex');
+    const peppered = Buffer.from(derived.map((b, i) => b ^ pepperBuf[i % pepperBuf.length]));
+    return `${salt}:${peppered.toString('hex')}`;
+  }
   return `${salt}:${derived.toString('hex')}`;
 }
 
@@ -161,9 +167,13 @@ async function verifyPassword(password: string, passwordHash: string) {
   if (!salt || !storedHash) return false;
 
   const derived = (await scrypt(password, salt, 64)) as Buffer;
+  const pepper = env.passwordPepper;
+  const candidate = pepper
+    ? Buffer.from(derived.map((b, i) => b ^ Buffer.from(pepper, 'hex')[i % Buffer.from(pepper, 'hex').length]))
+    : derived;
   const expected = Buffer.from(storedHash, 'hex');
-  if (derived.length !== expected.length) return false;
-  return timingSafeEqual(derived, expected);
+  if (candidate.length !== expected.length) return false;
+  return timingSafeEqual(candidate, expected);
 }
 
 function getSessionCookieOptions(expiresAt?: string) {
@@ -252,7 +262,18 @@ async function createSession(userId: string) {
 function createFallbackSession(user: AdminSessionUser) {
   const rawToken = randomBytes(32).toString('hex');
   const expiresAt = new Date(Date.now() + SESSION_TTL_MS).toISOString();
-  getFallbackSessionStore().set(rawToken, { user, expiresAt });
+  const store = getFallbackSessionStore();
+
+  // Warn operators that the volatile fallback store is active
+  console.error('[auth] WARN: DB unavailable — using volatile in-memory session store. Sessions will not persist across restarts and cannot be revoked across instances.');
+
+  // Cap at 500 entries to prevent unbounded memory growth; evict the oldest entry
+  if (store.size >= 500) {
+    const oldest = store.keys().next().value;
+    if (oldest) store.delete(oldest);
+  }
+
+  store.set(rawToken, { user, expiresAt });
   return { rawToken, expiresAt };
 }
 
@@ -699,6 +720,26 @@ export async function logoutAdminUser(request: Request) {
   const rawToken = readSessionTokenFromRequest(request);
   if (rawToken) {
     await deleteSessionByRawToken(rawToken);
+  }
+}
+
+export async function logoutAllAdminSessions(userId: string) {
+  if (env.databaseUrl) {
+    try {
+      await getDb().delete(adminSessionsTable).where(eq(adminSessionsTable.userId, userId));
+    } catch (error) {
+      if (!isMissingAdminSchemaError(error)) {
+        throw error;
+      }
+    }
+  }
+
+  // Also clear any fallback in-memory sessions for this user
+  const store = getFallbackSessionStore();
+  for (const [token, session] of store.entries()) {
+    if (session.user.id === userId) {
+      store.delete(token);
+    }
   }
 }
 

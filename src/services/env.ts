@@ -96,5 +96,14 @@ export const env = {
   get trustedProxyCount() {
     const val = parseInt(clean(process.env.TRUSTED_PROXY_COUNT) || '0', 10);
     return Number.isFinite(val) && val >= 0 ? val : 0;
+  },
+  /**
+   * Optional 32+ byte hex string used as a server-side pepper for password hashing.
+   * When set, password hashes are XOR'd with this value before storage so that a DB
+   * leak alone is insufficient to crack passwords.
+   * Generate with: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+   */
+  get passwordPepper() {
+    return clean(process.env.PASSWORD_PEPPER);
   }
 };

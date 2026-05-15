@@ -106,6 +106,9 @@ export function assertTrustedMutationRequest(request: Request) {
   const origin = extractOrigin(request.headers.get('origin'));
   const referer = extractOrigin(request.headers.get('referer'));
 
+  // OR logic is intentional: either a matching Origin OR a matching Referer is sufficient to
+  // confirm the request came from the same site. Using AND would block legitimate browsers that
+  // omit one of the two headers (e.g. some proxies strip Referer; some requests lack Origin).
   if ((origin && allowedOrigins.has(origin)) || (referer && allowedOrigins.has(referer))) {
     return null;
   }
