@@ -5563,3 +5563,58 @@ button:disabled {
 
   .v-contact-card:last-child { border-bottom: none; }
 }
+
+.product-rich-text > * + * {
+  margin-top: 0.75rem;
+}
+
+.product-rich-text ul,
+.product-rich-text ol {
+  margin: 0.75rem 0 0;
+  padding-left: 1.15rem;
+}
+
+.product-rich-text ul {
+  list-style: disc;
+}
+
+.product-rich-text ol {
+  list-style: decimal;
+}
+
+.product-rich-text li + li {
+  margin-top: 0.35rem;
+}
+
+.product-rich-text strong,
+.product-rich-text b {
+  color: #111827;
+  font-weight: 700;
+}
+
+.product-rich-text a {
+  color: #111827;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+@keyframes atc-pop {
+  0% { transform: scale(1); }
+  40% { transform: scale(0.94); }
+  70% { transform: scale(1.04); }
+  100% { transform: scale(1); }
+}
+
+@keyframes atc-check-in {
+  0% { opacity: 0; transform: translateY(4px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+.atc-btn-added {
+  animation: atc-pop 0.28s ease-out forwards;
+}
+
+.atc-btn-added .atc-label {
+  animation: atc-check-in 0.2s ease-out 0.05s both;
+}

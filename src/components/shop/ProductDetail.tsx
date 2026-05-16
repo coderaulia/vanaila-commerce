@@ -5,12 +5,96 @@ import { useState } from 'react';
 
 import { addToCart } from '@/features/commerce/cartStore';
 import type { Product, ProductVariant } from '@/features/commerce/types';
+import { sanitizeProductDescriptionHtml } from './productDetailHtml';
 
 type Props = {
   product: Product;
+  relatedProducts?: Product[];
 };
 
-export function ProductDetail({ product }: Props) {
+type ProductReview = {
+  id: string;
+  author: string;
+  rating: number | null;
+  title: string;
+  body: string;
+};
+
+function formatRupiah(value: number): string {
+  return `Rp ${value.toLocaleString('id-ID')}`;
+}
+
+function getProductPrice(product: Product): number | null {
+  return product.variants?.find((variant) => variant.price > 0)?.price ?? product.variants?.[0]?.price ?? null;
+}
+
+function getProductReviews(product: Product): ProductReview[] {
+  const source = (product as Product & { reviews?: unknown }).reviews;
+  if (!Array.isArray(source)) return [];
+
+  return source.flatMap((item, index) => {
+    if (!item || typeof item !== 'object') return [];
+    const review = item as Record<string, unknown>;
+    const body = String(review.body ?? review.content ?? review.comment ?? '').trim();
+    if (!body) return [];
+    const ratingValue = Number(review.rating);
+    return [{
+      id: String(review.id ?? index),
+      author: String(review.author ?? review.name ?? 'Verified buyer').trim() || 'Verified buyer',
+      rating: Number.isFinite(ratingValue) ? Math.max(1, Math.min(5, ratingValue)) : null,
+      title: String(review.title ?? '').trim(),
+      body
+    }];
+  });
+}
+
+function ProductDescription({ html }: { html: string }) {
+  const safeHtml = sanitizeProductDescriptionHtml(html);
+  if (!safeHtml) return null;
+
+  return (
+    <div
+      className="product-rich-text text-sm text-gray-600 leading-relaxed"
+      dangerouslySetInnerHTML={{ __html: safeHtml }}
+    />
+  );
+}
+
+function RelatedProductCard({ product }: { product: Product }) {
+  const price = getProductPrice(product);
+  const image = product.images[0];
+
+  return (
+    <Link href={`/shop/${product.slug}`} className="group block no-underline text-inherit">
+      <div className="aspect-[4/5] overflow-hidden bg-[#f3f3f0]">
+        {image ? (
+          <img
+            src={image}
+            alt={product.title}
+            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+          />
+        ) : (
+          <div className="flex h-full items-center justify-center text-xs uppercase tracking-widest text-gray-400">
+            No image
+          </div>
+        )}
+      </div>
+      <div className="mt-4 flex items-start justify-between gap-3">
+        <div>
+          <h3 className="text-sm font-bold uppercase tracking-wide text-black transition-colors group-hover:text-gray-600">
+            {product.title}
+          </h3>
+          {product.shortDescription ? (
+            <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-gray-500">{product.shortDescription}</p>
+          ) : null}
+        </div>
+        {price != null ? <p className="shrink-0 text-sm font-semibold text-black">{formatRupiah(price)}</p> : null}
+      </div>
+    </Link>
+  );
+}
+
+export function ProductDetail({ product, relatedProducts = [] }: Props) {
   const variants = product.variants || [];
   const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(variants[0] || null);
   const [selectedImage, setSelectedImage] = useState(0);
@@ -28,6 +112,7 @@ export function ProductDetail({ product }: Props) {
     selectedVariant?.compareAtPrice && selectedVariant.compareAtPrice > selectedVariant.price;
   const inStock = selectedVariant ? selectedVariant.stock > 0 : false;
   const optionKeys = variants[0]?.options ? Object.keys(variants[0].options) : [];
+  const reviews = getProductReviews(product);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
@@ -91,11 +176,11 @@ export function ProductDetail({ product }: Props) {
           {selectedVariant && (
             <div className="flex items-baseline gap-3 mb-4">
               <span className={`text-2xl font-semibold ${hasCompare ? 'text-red-600' : ''}`}>
-                Rp {selectedVariant.price.toLocaleString('id-ID')}
+                {formatRupiah(selectedVariant.price)}
               </span>
               {hasCompare && (
                 <span className="text-base text-gray-400 line-through">
-                  Rp {selectedVariant.compareAtPrice!.toLocaleString('id-ID')}
+                  {formatRupiah(selectedVariant.compareAtPrice!)}
                 </span>
               )}
               {hasCompare && (
@@ -151,9 +236,16 @@ export function ProductDetail({ product }: Props) {
                             isActive
                               ? 'bg-black text-white border-black'
                               : isOutOfStock
-                              ? 'border-gray-200 text-gray-300 cursor-not-allowed line-through'
-                              : 'border-gray-300 text-gray-700 hover:border-black'
+                                ? 'border-gray-200 text-gray-300 cursor-not-allowed line-through'
+                                : 'border-gray-300 text-gray-700 hover:border-black'
                           }`}
+                          style={{
+                            backgroundColor: isActive ? '#0a0a0a' : '#ffffff',
+                            borderColor: isActive ? '#0a0a0a' : isOutOfStock ? '#e5e7eb' : '#d1d5db',
+                            color: isActive ? '#ffffff' : isOutOfStock ? '#d1d5db' : '#111827',
+                            borderRadius: 4,
+                            padding: '0.5rem 1rem'
+                          }}
                         >
                           {val}
                         </button>
@@ -173,6 +265,7 @@ export function ProductDetail({ product }: Props) {
                     onClick={() => setQuantity(Math.max(1, quantity - 1))}
                     aria-label="Decrease quantity"
                     className="w-10 h-12 flex items-center justify-center text-lg hover:bg-gray-50 transition-colors"
+                    style={{ backgroundColor: '#ffffff', color: '#111827', borderRadius: 0, padding: 0 }}
                   >
                     −
                   </button>
@@ -182,6 +275,7 @@ export function ProductDetail({ product }: Props) {
                     onClick={() => setQuantity(Math.min(selectedVariant!.stock, quantity + 1))}
                     aria-label="Increase quantity"
                     className="w-10 h-12 flex items-center justify-center text-lg hover:bg-gray-50 transition-colors"
+                    style={{ backgroundColor: '#ffffff', color: '#111827', borderRadius: 0, padding: 0 }}
                   >
                     +
                   </button>
@@ -190,6 +284,7 @@ export function ProductDetail({ product }: Props) {
                   type="button"
                   onClick={handleAddToCart}
                   className={`flex-1 h-12 bg-black text-white font-semibold text-sm tracking-wide rounded-sm transition-opacity ${added ? 'atc-btn-added' : 'hover:opacity-80'}`}
+                  style={{ backgroundColor: added ? '#15803d' : '#0a0a0a', color: '#ffffff', borderRadius: 4, padding: 0 }}
                 >
                   <span className="atc-label">
                     {added ? '✓ ADDED TO CART' : 'ADD TO CART'}
@@ -202,6 +297,7 @@ export function ProductDetail({ product }: Props) {
                   type="button"
                   disabled
                   className="w-full h-12 bg-gray-200 text-gray-400 font-semibold text-sm tracking-wide rounded-sm cursor-not-allowed"
+                  style={{ backgroundColor: '#e5e7eb', color: '#9ca3af', borderRadius: 4, padding: 0 }}
                 >
                   OUT OF STOCK
                 </button>
@@ -234,13 +330,56 @@ export function ProductDetail({ product }: Props) {
           {product.description && (
             <div className="mt-8 border-t border-gray-100 pt-6">
               <h2 className="font-bold text-sm uppercase tracking-widest mb-4">Product Details</h2>
-              <p className="whitespace-pre-line text-sm text-gray-600 leading-relaxed">
-                {product.description}
-              </p>
+              <ProductDescription html={product.description} />
             </div>
           )}
         </div>
       </div>
+
+      {reviews.length > 0 && (
+        <section className="mt-20 border-t border-gray-100 pt-10">
+          <div className="mb-8 flex items-end justify-between gap-4">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.24em] text-gray-400">Customer Notes</p>
+              <h2 className="mt-2 text-2xl font-bold uppercase text-black">Review</h2>
+            </div>
+            <p className="text-sm text-gray-500">{reviews.length} available</p>
+          </div>
+          <div className="grid gap-4 md:grid-cols-3">
+            {reviews.map((review) => (
+              <article key={review.id} className="border border-gray-200 bg-white p-5">
+                {review.rating != null ? (
+                  <p className="mb-3 text-sm font-semibold tracking-[0.2em] text-black">
+                    {'★'.repeat(review.rating)}{'☆'.repeat(5 - review.rating)}
+                  </p>
+                ) : null}
+                {review.title ? <h3 className="mb-2 text-sm font-bold uppercase text-black">{review.title}</h3> : null}
+                <p className="text-sm leading-relaxed text-gray-600">{review.body}</p>
+                <p className="mt-4 text-xs font-bold uppercase tracking-widest text-gray-400">{review.author}</p>
+              </article>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {relatedProducts.length > 0 && (
+        <section className="mt-20 border-t border-gray-100 pt-10">
+          <div className="mb-8 flex items-end justify-between gap-4">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.24em] text-gray-400">You may also like</p>
+              <h2 className="mt-2 text-2xl font-bold uppercase text-black">Related Item</h2>
+            </div>
+            <Link href="/shop" className="text-xs font-bold uppercase tracking-widest text-black no-underline hover:text-gray-500">
+              View shop
+            </Link>
+          </div>
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            {relatedProducts.slice(0, 4).map((item) => (
+              <RelatedProductCard key={item.id} product={item} />
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   );
 }
