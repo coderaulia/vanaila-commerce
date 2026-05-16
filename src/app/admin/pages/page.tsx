@@ -12,6 +12,11 @@ import { getLandingPagePublicationLabel } from '@/features/cms/publicationState'
 import type { LandingPage, PageId } from '@/features/cms/types';
 import { csrfFetch } from '@/lib/clientCsrf';
 
+type PagesResponse = {
+  pages: LandingPage[];
+  storefrontEnabled?: boolean;
+};
+
 type PagesListProps = {
   user: AdminSessionUser;
 };
@@ -22,6 +27,7 @@ function PagesList({ user }: PagesListProps) {
   const router = useRouter();
 
   const [pages, setPages] = useState<LandingPage[]>([]);
+  const [storefrontEnabled, setStorefrontEnabled] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
@@ -43,8 +49,9 @@ function PagesList({ user }: PagesListProps) {
         setError('Failed to load pages.');
         return;
       }
-      const payload = (await response.json()) as { pages: LandingPage[] };
+      const payload = (await response.json()) as PagesResponse;
       setPages(payload.pages);
+      setStorefrontEnabled(Boolean(payload.storefrontEnabled));
       setError('');
     } finally {
       setLoading(false);
@@ -119,6 +126,25 @@ function PagesList({ user }: PagesListProps) {
 
   return (
     <div className="admin-form-wrap">
+      {storefrontEnabled ? (
+        <section className="admin-card">
+          <div className="admin-inline-header">
+            <div>
+              <h2>Storefront page</h2>
+              <p className="admin-subtle">
+                Store mode is enabled, so <strong>/</strong> is the shop homepage. Edit Home for SEO and hero copy; manage products, categories, template, header, and footer in their store settings.
+              </p>
+            </div>
+            <div className="admin-actions">
+              <Link href="/admin/pages/home">Edit storefront copy</Link>
+              <Link href="/admin/products">Products</Link>
+              <Link href="/admin/product-categories">Categories</Link>
+              <Link href="/admin/settings">Template settings</Link>
+            </div>
+          </div>
+        </section>
+      ) : null}
+
       {pages.length === 0 ? (
         <section className="admin-card admin-empty-state">
           <h2>No pages found</h2>
@@ -236,6 +262,11 @@ function PagesList({ user }: PagesListProps) {
                     <td>
                       <strong>{page.navLabel}</strong>
                       <span className="admin-subtle">{page.title}</span>
+                      {storefrontEnabled && page.id === 'home' ? (
+                        <span className="admin-chip admin-chip-success" style={{ marginTop: 6, width: 'fit-content' }}>
+                          Storefront /
+                        </span>
+                      ) : null}
                     </td>
                     <td>/{page.seo.slug || ''}</td>
                     <td>
@@ -277,7 +308,7 @@ export default function AdminPagesPage() {
   return (
     <AdminShell
       title="Pages"
-      description="Manage landing pages and homepage block composition."
+      description="Manage site pages, SEO, and storefront homepage copy."
     >
       {(user) => <PagesList user={user} />}
     </AdminShell>

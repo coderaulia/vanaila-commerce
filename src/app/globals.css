@@ -1549,6 +1549,241 @@ button:disabled {
   min-width: 40px;
 }
 
+/* ─── Admin UI Utilities ─── */
+
+.admin-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1px solid #c8d4e8;
+  background: #fff;
+  color: #1a2d4c;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background 0.15s, border-color 0.15s;
+  white-space: nowrap;
+}
+
+.admin-btn:hover {
+  background: #f0f4fa;
+  border-color: #a0b4d0;
+}
+
+.admin-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.admin-btn-primary {
+  background: #1a2d4c;
+  border-color: #1a2d4c;
+  color: #fff;
+}
+
+.admin-btn-primary:hover {
+  background: #14253f;
+  border-color: #14253f;
+  color: #fff;
+}
+
+.admin-btn-secondary {
+  background: #f0f5fc;
+  border-color: #c8d4e8;
+  color: #1a2d4c;
+}
+
+.admin-btn-danger {
+  background: #8e2134;
+  border-color: #8e2134;
+  color: #fff;
+}
+
+.admin-btn-danger:hover {
+  background: #74192a;
+  border-color: #74192a;
+  color: #fff;
+}
+
+.admin-btn-sm {
+  padding: 5px 12px;
+  font-size: 0.8rem;
+  border-radius: 6px;
+}
+
+.admin-label {
+  display: block;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 4px;
+  margin-top: 12px;
+}
+
+.admin-label:first-child {
+  margin-top: 0;
+}
+
+.admin-input {
+  width: 100%;
+  border: 1px solid #c9d5ea;
+  border-radius: 8px;
+  padding: 9px 12px;
+  background: #fbfcff;
+  color: #10203c;
+  font-size: 0.875rem;
+}
+
+.admin-input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.12);
+}
+
+.admin-select {
+  width: 100%;
+  border: 1px solid #c9d5ea;
+  border-radius: 8px;
+  padding: 9px 12px;
+  background: #fbfcff;
+  color: #10203c;
+  font-size: 0.875rem;
+}
+
+.admin-select:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.12);
+}
+
+.admin-textarea {
+  width: 100%;
+  border: 1px solid #c9d5ea;
+  border-radius: 8px;
+  padding: 9px 12px;
+  background: #fbfcff;
+  color: #10203c;
+  font-size: 0.875rem;
+  resize: vertical;
+  min-height: 80px;
+}
+
+.admin-textarea:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.12);
+}
+
+.admin-form-grid {
+  display: grid;
+  gap: 16px;
+}
+
+.admin-form-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  align-items: start;
+}
+
+.admin-form-section {
+  display: grid;
+  gap: 6px;
+}
+
+.admin-form-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.admin-form-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding-top: 8px;
+}
+
+.admin-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: end;
+  margin-bottom: 16px;
+}
+
+.admin-pagination {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  justify-content: center;
+  margin-top: 16px;
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+.admin-notice {
+  padding: 10px 14px;
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  border-radius: 8px;
+  color: #065f46;
+  font-size: 0.875rem;
+}
+
+.admin-error {
+  padding: 10px 14px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  color: #991b1b;
+  font-size: 0.875rem;
+}
+
+.admin-chip-active {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.admin-chip-draft {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.admin-chip-archived {
+  background: #ede9fe;
+  color: #6b21a8;
+}
+
+.admin-chip-pending_payment,
+.admin-chip-processing {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.admin-chip-paid,
+.admin-chip-delivered {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.admin-chip-shipped {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.admin-chip-cancelled,
+.admin-chip-refunded {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
 /* ─── Reorder List ─── */
 
 .admin-reorder-list {

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 
+import { modules } from '@/config/modules';
 import { assertAdminRequest } from '@/features/cms/adminAuth';
 import { getPages } from '@/features/cms/contentStore';
 
@@ -17,6 +18,5 @@ export async function GET(request: Request) {
   ]
     .map((id) => pages[id as keyof typeof pages])
     .filter(Boolean);
-  return NextResponse.json({ pages: ordered });
+  return NextResponse.json({ pages: ordered, storefrontEnabled: modules.ENABLE_STORE_MODULE });
 }
-

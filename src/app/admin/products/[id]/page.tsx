@@ -1,11 +1,98 @@
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { AdminShell } from '@/components/AdminShell';
+import { MediaGalleryField } from '@/components/admin/MediaPickerField';
 import type { Product, ProductCategory, ProductVariant } from '@/features/commerce/types';
 import { csrfFetch } from '@/lib/clientCsrf';
+
+/** Strip scripts and on* handlers from editor HTML (admin-only context). */
+function sanitizeEditorHtml(raw: string): string {
+  const tmp = document.createElement('div');
+  tmp.textContent = '';
+  // Use a DocumentFragment approach to avoid executing scripts during parse
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(raw, 'text/html');
+  doc.querySelectorAll('script, object, embed, iframe').forEach((el) => el.remove());
+  doc.querySelectorAll('*').forEach((el) => {
+    Array.from(el.attributes).forEach((attr) => {
+      if (attr.name.toLowerCase().startsWith('on')) el.removeAttribute(attr.name);
+      if (attr.name.toLowerCase() === 'href' && attr.value.toLowerCase().startsWith('javascript:')) {
+        el.removeAttribute(attr.name);
+      }
+    });
+  });
+  return doc.body.innerHTML;
+}
+
+type RichTextEditorProps = { value: string; onChange: (v: string) => void };
+
+function RichTextEditor({ value, onChange }: RichTextEditorProps) {
+  const editorRef = useRef<HTMLDivElement>(null);
+  const lastValue = useRef(value);
+
+  const setEditorContent = (html: string) => {
+    if (!editorRef.current) return;
+    const safe = sanitizeEditorHtml(html);
+    editorRef.current.innerHTML = safe;
+    lastValue.current = safe;
+  };
+
+  useEffect(() => {
+    if (value !== lastValue.current) setEditorContent(value);
+  }, [value]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    setEditorContent(value);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleInput = () => {
+    if (!editorRef.current) return;
+    lastValue.current = editorRef.current.innerHTML;
+    onChange(editorRef.current.innerHTML);
+  };
+
+  const runFormat = (cmd: string, arg?: string) => {
+    document.execCommand(cmd, false, arg);
+    editorRef.current?.focus();
+    if (editorRef.current) {
+      lastValue.current = editorRef.current.innerHTML;
+      onChange(editorRef.current.innerHTML);
+    }
+  };
+
+  const btn: React.CSSProperties = {
+    padding: '4px 10px', fontSize: '0.8rem', border: '1px solid #d1d5db',
+    borderRight: 'none', background: '#f9fafb', cursor: 'pointer', fontFamily: 'inherit',
+    color: '#374151', fontWeight: 500, borderRadius: 0
+  };
+
+  return (
+    <div style={{ border: '1px solid #d1d5db', borderRadius: 6, overflow: 'hidden' }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', background: '#f3f4f6', borderBottom: '1px solid #d1d5db' }}>
+        <button type="button" style={{ ...btn, fontWeight: 700 }} onMouseDown={(e) => { e.preventDefault(); runFormat('bold'); }} title="Bold">B</button>
+        <button type="button" style={{ ...btn, fontStyle: 'italic' }} onMouseDown={(e) => { e.preventDefault(); runFormat('italic'); }} title="Italic">I</button>
+        <button type="button" style={{ ...btn, borderRight: '1px solid #e5e7eb', marginRight: 4 }} onMouseDown={(e) => { e.preventDefault(); runFormat('underline'); }} title="Underline"><u>U</u></button>
+        <button type="button" style={btn} onMouseDown={(e) => { e.preventDefault(); runFormat('insertUnorderedList'); }} title="Bullet list">• List</button>
+        <button type="button" style={{ ...btn, borderRight: '1px solid #e5e7eb', marginRight: 4 }} onMouseDown={(e) => { e.preventDefault(); runFormat('insertOrderedList'); }} title="Numbered list">1. List</button>
+        <button type="button" style={btn} onMouseDown={(e) => { e.preventDefault(); runFormat('formatBlock', 'h3'); }} title="Heading">Heading</button>
+        <button type="button" style={{ ...btn, borderRight: '1px solid #d1d5db' }} onMouseDown={(e) => { e.preventDefault(); runFormat('formatBlock', 'p'); }} title="Normal text">Normal</button>
+      </div>
+      <div
+        ref={editorRef}
+        contentEditable
+        suppressContentEditableWarning
+        onInput={handleInput}
+        style={{
+          minHeight: 160, padding: '0.75rem', outline: 'none',
+          fontSize: '0.9rem', lineHeight: 1.7, background: '#fff'
+        }}
+      />
+    </div>
+  );
+}
 
 function ProductEditor() {
   const params = useParams();
@@ -18,7 +105,6 @@ function ProductEditor() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
-  const [newImageUrl, setNewImageUrl] = useState('');
   const [editingVariant, setEditingVariant] = useState<ProductVariant | null>(null);
   const [variantSaving, setVariantSaving] = useState(false);
 
@@ -62,17 +148,6 @@ function ProductEditor() {
       setError('Failed to save');
     }
     setSaving(false);
-  };
-
-  const handleAddImage = () => {
-    if (!product || !newImageUrl.trim()) return;
-    setProduct({ ...product, images: [...product.images, newImageUrl.trim()] });
-    setNewImageUrl('');
-  };
-
-  const handleRemoveImage = (index: number) => {
-    if (!product) return;
-    setProduct({ ...product, images: product.images.filter((_, i) => i !== index) });
   };
 
   const handleAddVariant = async () => {
@@ -151,11 +226,9 @@ function ProductEditor() {
 
       <div className="admin-form-section">
         <label className="admin-label">Description</label>
-        <textarea
-          className="admin-textarea"
-          rows={6}
+        <RichTextEditor
           value={product.description}
-          onChange={(e) => setProduct({ ...product, description: e.target.value })}
+          onChange={(v) => setProduct({ ...product, description: v })}
         />
       </div>
 
@@ -212,50 +285,12 @@ function ProductEditor() {
 
       {/* Images */}
       <div className="admin-form-section">
-        <h3>Images</h3>
-        {product.images.length > 0 && (
-          <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', marginBottom: '0.75rem' }}>
-            {product.images.map((img, i) => (
-              <div key={i} style={{ position: 'relative', width: 80, height: 80 }}>
-                <img
-                  src={img}
-                  alt={`Product image ${i + 1}`}
-                  style={{ width: 80, height: 80, objectFit: 'cover', borderRadius: 4, border: '1px solid #e5e7eb' }}
-                />
-                <button
-                  type="button"
-                  onClick={() => handleRemoveImage(i)}
-                  style={{
-                    position: 'absolute', top: -6, right: -6, width: 20, height: 20,
-                    borderRadius: '50%', background: '#ef4444', color: 'white',
-                    border: 'none', cursor: 'pointer', fontSize: 12, lineHeight: 1,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center'
-                  }}
-                >
-                  ×
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
-          <input
-            type="url"
-            className="admin-input"
-            value={newImageUrl}
-            onChange={(e) => setNewImageUrl(e.target.value)}
-            placeholder="https://... or /uploads/..."
-            style={{ flex: 1 }}
-          />
-          <button
-            type="button"
-            className="admin-btn"
-            onClick={handleAddImage}
-            disabled={!newImageUrl.trim()}
-          >
-            Add Image
-          </button>
-        </div>
+        <MediaGalleryField
+          label="Images"
+          values={product.images}
+          onChange={(next) => setProduct({ ...product, images: next })}
+          helperText="Upload or pick from your media library. First image is the main product photo."
+        />
       </div>
 
       {/* SEO */}

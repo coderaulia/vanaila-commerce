@@ -136,19 +136,23 @@ function SettingsEditor() {
 
   const usesFallbackBrandMark = !settings?.organizationLogo && !settings?.branding.headerLogo && !settings?.branding.footerLogo;
 
-  const save = async () => {
-    if (!settings) return;
+  const saveSettings = async (payload: SiteSettings) => {
     setSaving(true); setNotice(''); setError('');
     const res = await csrfFetch('/api/admin/settings', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(settings)
+      body: JSON.stringify(payload)
     });
     setSaving(false);
     if (!res.ok) { setError('Failed to save settings.'); return; }
     setSettings(((await res.json()) as SettingsResponse).settings);
     setNotice('Settings saved.');
     setRevisionReloadKey((k) => k + 1);
+  };
+
+  const save = async () => {
+    if (!settings) return;
+    await saveSettings(settings);
   };
 
   if (loading) return <p>Loading settings...</p>;
@@ -792,17 +796,17 @@ function SettingsEditor() {
             </p>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 20 }}>
               {TEMPLATES.map((tpl) => {
-                const active = (settings.appearance?.templateId ?? 'volta') === tpl.id;
+                const active = (settings.appearance?.templateId ?? 'vanaila') === tpl.id;
                 return (
                   <button
                     key={tpl.id}
                     type="button"
-                    onClick={() =>
-                      setSettings({
-                        ...settings,
-                        appearance: { ...(settings.appearance ?? {}), templateId: tpl.id }
-                      })
-                    }
+                    disabled={saving}
+                    onClick={() => {
+                      const next = { ...settings, appearance: { ...(settings.appearance ?? {}), templateId: tpl.id } };
+                      setSettings(next);
+                      saveSettings(next);
+                    }}
                     style={{
                       textAlign: 'left',
                       padding: 0,

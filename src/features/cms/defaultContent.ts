@@ -408,7 +408,7 @@ export const defaultContent: CmsContent = {
       paymentInstructions: 'Please transfer the total amount to the bank account above. Include your order number in the transfer description. Send proof of payment via WhatsApp to confirm your order.'
     },
     appearance: {
-      templateId: 'volta'
+      templateId: 'vanaila'
     },
     siteName: 'Example Studio.',
     baseUrl: process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000',

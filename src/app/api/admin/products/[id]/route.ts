@@ -34,8 +34,11 @@ export async function PUT(request: Request, context: RouteContext) {
   const body = (await request.json().catch(() => null)) as Partial<Product> | null;
   if (!body) return NextResponse.json({ error: 'Invalid body' }, { status: 400 });
 
-  const product = await updateProduct(id, body);
-  if (!product) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  const updated = await updateProduct(id, body);
+  if (!updated) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+
+  // Fetch full product with variants so the response includes variant data
+  const product = await getProductById(id) ?? updated;
 
   try {
     await logAdminAuditEvent(request, {

@@ -3,109 +3,52 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { useState } from 'react';
+import { Lato, Playfair_Display } from 'next/font/google';
 import {
   Menu,
   Search,
   User,
   ShoppingBag,
   Heart,
-  Star,
   X,
   Instagram,
   Facebook
 } from 'lucide-react';
 
+import type { Product, ProductCategory } from '@/features/commerce/types';
 import type { LandingPage, SiteSettings } from '@/features/cms/types';
 import styles from './javanesa.module.css';
+
+const fontLato = Lato({ subsets: ['latin'], variable: '--font-lato', weight: ['300', '400', '700'], display: 'swap' });
+const fontAccent = Playfair_Display({ subsets: ['latin'], variable: '--font-accent', style: ['italic'], display: 'swap' });
 
 type JavanesaHomeProps = {
   page: LandingPage;
   settings: SiteSettings;
+  products?: Product[];
+  categories?: ProductCategory[];
 };
 
-function StarRating({ rating }: { rating: number }) {
-  return (
-    <div className="flex justify-center text-accent text-sm mb-2">
-      {[1, 2, 3, 4, 5].map((i) => (
-        <Star
-          key={i}
-          size={12}
-          fill={i <= rating ? 'currentColor' : 'none'}
-          strokeWidth={i <= rating ? 0 : 1.5}
-          className="text-accent"
-        />
-      ))}
-    </div>
-  );
-}
-
-const DEMO_PRODUCTS = [
+const CATEGORY_SHAPES = [
   {
-    name: 'Javanese Lulur Scrub',
-    price: '$35.00',
-    compareAt: '$45.00',
-    rating: 5,
-    img: 'https://lh3.googleusercontent.com/aida-public/AB6AXuA-hw2wqUIYtpkKjoRzWmA6uKhx5M73kKf7q8IbANZiklBs7lHtIq3uD4GNGKe1LegZa0cPYuvvJYVeAzxVYTRnA-_8KVAOfmxT4qEStbDNvqEPg30yWuq8L3grzl7W0EsSIdE_eAsTx5Lt_BNmIKufGcEeGiHvXczB7gauO_tcG836wk4yeIxVN5XiJ8E6_Glvxaom57IZon7sj6sHu41VYMxpymGleYZyyfsEleoTctZfOaBCdmchN_IFc4DsTfv3dbUPs4HUbG4',
-    alt: 'Javanese Lulur Scrub'
-  },
-  {
-    name: 'Merapi Ash Cleanser',
-    price: '$28.00',
-    compareAt: null,
-    rating: 4,
-    img: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBZaHyR5iYR_rrTUu0wJo_8xr2nq7KkLQV_3XvAR3tYIfexNTyPWErxzkX_gF5M8Ur5p-1VU5ANcmx2DnjtyVzeHJBVOPRX7qXaWqL0UWALx9WDFpFuy4t3GQlcv6UQMXOBMujk9_L50I6lWIRj8MrzLMKiHa0DKx8Xq236t96qFsxrqCKWjuptQyHiWK7B5rB1hh9K2vMt9-Ju2NhkmPmJP9OjanUQ1Y583nssohNcyuY7K3erbD_M4EvjaXTeVhIGV964gH7sAf0',
-    alt: 'Merapi Ash Cleanser'
-  },
-  {
-    name: 'Taman Sari Jasmine Mist',
-    price: '$42.00',
-    compareAt: null,
-    rating: 4,
-    img: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBilEgU3AoH4CSEBB08PpZ-GyxfL3nC0soLg58q_pQQpeO4RFyl6jH-EyFD8-PW26nd5LaKkl2Y2fqwcrmKc4_uqRoj1EUL6BsduW5iRhiUc0MKcr87FCPRXFaRek6EjAOAIqTT6rR9baUvNxqE1WdcBCr225Y7--_1eAjXuqGymPcJX8jpSsOcNEeofvdeHPpkz6k0UJeq_VElabUmXsjY-k28tC-1BgYS-Agk1EmhYZzWfJoejYMrT0yAb5uiJz4jf-hrbGnKKRg',
-    alt: 'Taman Sari Jasmine Mist'
-  },
-  {
-    name: 'Turmeric Brightening Elixir',
-    price: '$55.00',
-    compareAt: null,
-    rating: 5,
-    img: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAqpMNNS3ukwDVQQnzahBl6gj13LIC6DNjL9OvBV1aN3weYTWSerqUTMl1_wvLCXWbhefwzVzabU4hRwyDp_BopvCfPsjroIjcTLgdAcJxHkhxPG_7R66kH4jF3hTB5HZC3aqZs2C6j61G89YoHhSvIcn7LMQ2tJy_6maDtFsSKoP2LjTCjztOXP_2Gm8sQfvvscod-vLdAqxlc3OKng5053Xub3zztuYLggwt9iDUuwT9O-HRpveqQ2yPiBAdAiZ6YU_niXMMjHzA',
-    alt: 'Turmeric Brightening Elixir'
-  }
-];
-
-const DEMO_CATEGORIES = [
-  {
-    name: 'Bio-Herbal',
-    count: '12 Items',
-    img: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBxRkII8WpwZTz0Va9P2bKAgKrr181J2kl4u1WOrOKNIUebfdVcS4v8NsE0PnpTgXVG2NXiGpCbw-gmSt3QG17rwDVJ4kUBqMGAglTOdwnC2rt6HSkjefkQdlS1gVVRR4lHGcfBC8ezT4eMZeJ0_BJ4B1q52v1u2PpAa2fW8l_5eW_9oitmchWPVRPag6MWrPKIZCoO_UQfeo8KaOtQbeMlJBGhIkB6oevMliga0viC6JIMFjQO6mOor8_20Bj0IixIGaJD94TtNaA',
     offset: false,
     borderRadius: 'rounded-[40%_60%_70%_30%/40%_50%_60%_50%]',
     imgRadius: 'rounded-[35%_55%_65%_25%/35%_45%_55%_45%]',
     hoverRadius: 'group-hover:rounded-[50%_50%_40%_60%/60%_40%_50%_50%]'
   },
   {
-    name: 'Body Lotion',
-    count: '8 Items',
-    img: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAp5lraAaOpN3KxOnnSp88k8l_IapNK6Onb9ZWO4uFilIPOxg78s0Aua8KGUVlds5K_UIaTK01ujcDwoKa61sCIzhT1RqjzEwDSdy0uhXTCUmmgqmmEcDxuI0I_D9AO1PJp0GndoYTbmbon6Q94I-JNZrQpVL6osVsdMfhr1PWimRtTLwOibrTws8LCVJZRASTEzdiRuvG_sGUnLEwEUans-O1Di6gJDkw55Sm6MJM4lnDUQpr-ikrOqMnoyAINEw855TA_mujpIEw',
     offset: true,
     borderRadius: 'rounded-[60%_40%_30%_70%/60%_30%_70%_40%]',
     imgRadius: 'rounded-[55%_35%_25%_65%/55%_25%_65%_35%]',
     hoverRadius: 'group-hover:rounded-[40%_60%_50%_50%/50%_50%_50%_50%]'
   },
   {
-    name: 'Candle Spa',
-    count: '5 Items',
-    img: 'https://lh3.googleusercontent.com/aida-public/AB6AXuD6_lVTbg2umYf9JHYJ9iXyMWbBLnPdb_8dLxv94LgKrNXY77p2ku9xU00RTTWeiXjf0thQIuUR-rRrdDOrzxWx7zCyf40bpxnhCZhldGYDu5tD7oqXDR0IYgi7mpRTiA5B9drQFnKOE8zO4UuPhPdtUlEm9gWtLVbhZEblxjNaO5AVDtvVba_UIpSlBGS5EQTqMfjvwTkrYHxids5B4VtXdY7k3cBdspWtaGcGLCC6zLZLygK_OcIRmjZXbl5s_jn5gQruJbc5SD8',
     offset: false,
     borderRadius: 'rounded-[50%_50%_20%_80%/25%_80%_20%_75%]',
     imgRadius: 'rounded-[45%_45%_15%_75%/20%_75%_15%_70%]',
     hoverRadius: 'group-hover:rounded-[60%_40%_40%_60%/40%_60%_40%_60%]'
   },
   {
-    name: 'Skin Care',
-    count: '16 Items',
-    img: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBxNim3Bm4y1ZgGC4Z2xG4OmR3vh15lX2dZhaFrlaFcVJufFlVd15LAzTwKRAV118PPoDLlZH7AeTOGmOdH5bPayA7FFILvFimmH0x4hDldywuGC1BcJIqbpyawCd0gvTQnnaGv_6qXOiqREe0EtIPbuEDctumV7grzF7t2bF0swGrcXkXoJSTHvxB8-J4A9NSsAXQt8oapMXOCRER6-S0hDvJh-LHAKnhS06VTfQwJZhSOZI9rGbQK1jVgvcaoFZ5dVWazZoV2Hcs',
     offset: true,
     borderRadius: 'rounded-[30%_70%_70%_30%/30%_30%_70%_70%]',
     imgRadius: 'rounded-[25%_65%_65%_25%/25%_25%_65%_65%]',
@@ -113,7 +56,11 @@ const DEMO_CATEGORIES = [
   }
 ];
 
-export function JavanesaHome({ page, settings }: JavanesaHomeProps) {
+function formatRupiah(price: number): string {
+  return `Rp ${price.toLocaleString('id-ID')}`;
+}
+
+export function JavanesaHome({ page, settings, products = [], categories = [] }: JavanesaHomeProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const hero = page.homeBlocks?.find((b) => b.enabled && b.type === 'hero');
@@ -132,7 +79,7 @@ export function JavanesaHome({ page, settings }: JavanesaHomeProps) {
   const shippingAnnouncement = 'Free shipping on all orders over $50 | Sourced from Yogyakarta, Java';
 
   return (
-    <div className={`bg-background-light dark:bg-background-dark text-text-light dark:text-text-dark transition-colors duration-300 ${styles.root}`}>
+    <div className={`bg-background-light dark:bg-background-dark text-text-light dark:text-text-dark transition-colors duration-300 ${styles.root} ${fontLato.variable} ${fontAccent.variable}`}>
 
       {/* Announcement bar */}
       <div className="bg-primary text-white text-center py-2 text-xs uppercase tracking-widest font-light">
@@ -180,7 +127,7 @@ export function JavanesaHome({ page, settings }: JavanesaHomeProps) {
               <Link href="/search" className="text-text-light dark:text-text-dark hover:text-primary transition-colors" aria-label="Search">
                 <Search size={22} />
               </Link>
-              <Link href="/admin" className="text-text-light dark:text-text-dark hover:text-primary transition-colors" aria-label="Account">
+              <Link href="/account" className="text-text-light dark:text-text-dark hover:text-primary transition-colors" aria-label="Account">
                 <User size={22} />
               </Link>
               <Link href="/cart" className="text-text-light dark:text-text-dark hover:text-primary transition-colors relative" aria-label="Cart">
@@ -252,7 +199,7 @@ export function JavanesaHome({ page, settings }: JavanesaHomeProps) {
               <img
                 alt="Organic skincare products on volcanic stones"
                 className="absolute inset-0 w-full h-full object-cover rounded-tl-[100px] rounded-bl-sm lg:rounded-bl-[150px] shadow-2xl"
-                src="https://lh3.googleusercontent.com/aida-public/AB6AXuB4bSSzLB2DuT697QffmOCGHmCvv3IFJrsCXAJJ353ZaZDaGNolzZnWUYsKna3y3FdQyvMj17oUhwh2xEYDExBF3gdNGEHStJSMWebMI7R-HTjcqmg3pAhR3HCa0QL-V_ObsCcL1xzzD_bGurQhJjGQ621MWNEnxaxHem7QKusBwspj0K2tGC2_20e7iKHTVkG_WydyJKD83Yj5lTtSHP0cspUez9Mc62SolVPElFlqx-IiCTSEuYb8Cus2AxXczlCGYiFjVI-7xpU"
+                src="https://images.unsplash.com/photo-1596755389378-c31d21fd1273?w=900&h=1100&fit=crop&q=80"
               />
               <div className="absolute top-8 right-8 bg-white dark:bg-background-dark rounded-full p-4 shadow-lg flex flex-col items-center justify-center w-24 h-24 rotate-12">
                 <span className="text-[10px] uppercase tracking-wider text-center font-bold text-primary">100%</span>
@@ -284,22 +231,25 @@ export function JavanesaHome({ page, settings }: JavanesaHomeProps) {
             <h2 className="text-4xl font-bold italic">Popular Categories</h2>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-            {DEMO_CATEGORIES.map((cat) => (
-              <Link key={cat.name} href="/shop" className={`group flex flex-col items-center text-center ${cat.offset ? 'mt-0 md:mt-12' : ''}`}>
-                <div
-                  className={`relative w-40 h-56 md:w-48 md:h-64 mb-6 overflow-hidden ${cat.borderRadius} transition-all duration-700 ${cat.hoverRadius} border-4 border-surface-light dark:border-surface-dark group-hover:border-primary/20 p-2`}
-                >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    alt={cat.name}
-                    className={`w-full h-full object-cover ${cat.imgRadius} transition-transform duration-700 group-hover:scale-110`}
-                    src={cat.img}
-                  />
-                </div>
-                <h3 className="text-lg font-semibold mb-1 group-hover:text-primary transition-colors">{cat.name}</h3>
-                <p className="text-xs text-gray-500 uppercase tracking-widest">{cat.count}</p>
-              </Link>
-            ))}
+            {categories.map((cat, i) => {
+              const shape = CATEGORY_SHAPES[i % CATEGORY_SHAPES.length];
+              return (
+                <Link key={cat.id} href={`/shop?category=${cat.slug}`} className={`group flex flex-col items-center text-center ${shape.offset ? 'mt-0 md:mt-12' : ''}`}>
+                  <div
+                    className={`relative w-40 h-56 md:w-48 md:h-64 mb-6 overflow-hidden ${shape.borderRadius} transition-all duration-700 ${shape.hoverRadius} border-4 border-surface-light dark:border-surface-dark group-hover:border-primary/20 p-2`}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      alt={cat.name}
+                      className={`w-full h-full object-cover ${shape.imgRadius} transition-transform duration-700 group-hover:scale-110`}
+                      src={cat.image || 'https://images.unsplash.com/photo-1465146344425-f00d5f5ecc7e?w=400&h=500&fit=crop&q=80'}
+                    />
+                  </div>
+                  <h3 className="text-lg font-semibold mb-1 group-hover:text-primary transition-colors">{cat.name}</h3>
+                  <p className="text-xs text-gray-500 uppercase tracking-widest">{cat.description}</p>
+                </Link>
+              );
+            })}
           </div>
         </div>
       </section>
@@ -312,7 +262,7 @@ export function JavanesaHome({ page, settings }: JavanesaHomeProps) {
             <img
               alt="Woman applying skincare cream"
               className="absolute inset-0 w-full h-full object-cover"
-              src="https://lh3.googleusercontent.com/aida-public/AB6AXuBKyDAXaRkYgwE8G4tesAYd3gvYmX3QV3wJs1Yv0wmeIMcxNkO-H8FqKjaRFxnnyXtFS6SZk1geoVowpdAUqV9sL340FzEZThz35RRz3nxLsx-LMqoqUMKGy0CYdN2EvH8yOeSEbZc_iv0jWcWX96EKOHzQ-g1NaXWtQj8oluqFoBCli9qOH6buHB8jJWa0EaOmHup9bMUv-gsBPOZAgKvskOrvwdtoDU-a19hl94cmo0kORmShlx_HmpIVsmFQER-e2E20XQCc3WY"
+              src="https://images.unsplash.com/photo-1556228578-8c89e6adf883?w=900&h=700&fit=crop&q=80"
             />
           </div>
           <div className="w-full lg:w-1/2 flex items-center justify-center p-12 lg:p-24 relative overflow-hidden">
@@ -349,36 +299,46 @@ export function JavanesaHome({ page, settings }: JavanesaHomeProps) {
             </h2>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-            {DEMO_PRODUCTS.map((product) => (
-              <div key={product.name} className="group">
-                <div className="relative bg-surface-light dark:bg-surface-dark p-8 mb-4 rounded-lg flex justify-center items-center h-80 overflow-hidden">
-                  <button className="absolute top-4 right-4 text-gray-400 hover:text-red-500 transition-colors z-10" type="button" aria-label="Add to wishlist">
-                    <Heart size={20} />
-                  </button>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    alt={product.alt}
-                    className="max-h-full object-contain transition-transform duration-500 group-hover:scale-105"
-                    src={product.img}
-                  />
-                  <div className="absolute bottom-0 left-0 right-0 p-4 translate-y-full group-hover:translate-y-0 transition-transform duration-300">
-                    <button className="w-full bg-primary text-white py-3 text-sm uppercase tracking-widest hover:bg-opacity-90 transition-colors" type="button">
-                      Add to Cart
+            {products.map((product) => {
+              const variant = product.variants?.[0];
+              const img = product.images[0] || 'https://images.unsplash.com/photo-1608248543803-ba4f8c70ae0b?w=600&h=750&fit=crop&q=80';
+              return (
+                <Link key={product.id} href={`/shop/${product.slug}`} className="group">
+                  <div className="relative bg-surface-light dark:bg-surface-dark p-8 mb-4 rounded-lg flex justify-center items-center h-80 overflow-hidden">
+                    <button className="absolute top-4 right-4 text-gray-400 hover:text-red-500 transition-colors z-10" type="button" aria-label="Add to wishlist" onClick={(e) => e.preventDefault()}>
+                      <Heart size={20} />
                     </button>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      alt={product.title}
+                      className="max-h-full object-contain transition-transform duration-500 group-hover:scale-105"
+                      src={img}
+                    />
+                    <div className="absolute bottom-0 left-0 right-0 p-4 translate-y-full group-hover:translate-y-0 transition-transform duration-300">
+                      <span className="block w-full bg-primary text-white py-3 text-sm uppercase tracking-widest text-center">
+                        View Product
+                      </span>
+                    </div>
                   </div>
-                </div>
-                <div className="text-center">
-                  <StarRating rating={product.rating} />
-                  <h3 className="text-lg mb-1">{product.name}</h3>
-                  <p className="text-sm font-semibold">
-                    {product.price}
-                    {product.compareAt && (
-                      <span className="text-gray-400 line-through font-light ml-2">{product.compareAt}</span>
+                  <div className="text-center">
+                    <h3 className="text-lg mb-1">{product.title}</h3>
+                    {variant && (
+                      <p className="text-sm font-semibold">
+                        {formatRupiah(variant.price)}
+                        {variant.compareAtPrice != null && variant.compareAtPrice > variant.price && (
+                          <span className="text-gray-400 line-through font-light ml-2">{formatRupiah(variant.compareAtPrice)}</span>
+                        )}
+                      </p>
                     )}
-                  </p>
-                </div>
-              </div>
-            ))}
+                  </div>
+                </Link>
+              );
+            })}
+            {products.length === 0 && (
+              <p className="col-span-4 text-center text-gray-400 py-16 text-sm uppercase tracking-widest">
+                No products yet — run <code className="font-mono">npm run db:seed:javanesa</code> to populate.
+              </p>
+            )}
           </div>
           <div className="mt-16 text-center">
             <Link

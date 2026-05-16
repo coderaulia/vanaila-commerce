@@ -3,7 +3,10 @@
 import { usePathname } from 'next/navigation';
 
 import type { SiteSettings } from '@/features/cms/types';
+import { modules } from '@/config/modules';
 import { getTemplate } from '@/config/templates';
+import { JavanesaStoreShell } from './home/templates/javanesa/StoreShell';
+import { VoltaStoreShell } from './home/templates/volta/StoreShell';
 
 import { CustomCursorProvider } from './CustomCursor';
 import { SiteFooter } from './SiteFooter';
@@ -28,19 +31,26 @@ export function AppShell({ siteName, navItems, settings, children }: AppShellPro
   const isAdminRoute = pathname === '/admin' || pathname.startsWith('/admin/');
 
   const template = getTemplate(settings.appearance?.templateId ?? 'vanaila');
-  if (template.selfContained && (pathname === '/' || pathname.startsWith('/shop') || pathname === '/cart' || pathname === '/checkout')) {
+
+  if (isAdminRoute) {
     return <>{children}</>;
   }
 
   const isStoreRoute =
-    pathname === '/' ||
+    (modules.ENABLE_STORE_MODULE && pathname === '/') ||
     pathname === '/shop' ||
     pathname.startsWith('/shop/') ||
     pathname === '/cart' ||
     pathname === '/checkout';
 
-  if (isAdminRoute) {
-    return <>{children}</>;
+  // Store routes: use template-specific shell for selfContained templates
+  if (isStoreRoute && template.selfContained) {
+    if (template.id === 'volta') {
+      return <VoltaStoreShell siteName={siteName} settings={settings}>{children}</VoltaStoreShell>;
+    }
+    if (template.id === 'javanesa') {
+      return <JavanesaStoreShell siteName={siteName} settings={settings}>{children}</JavanesaStoreShell>;
+    }
   }
 
   if (isStoreRoute) {
@@ -51,6 +61,11 @@ export function AppShell({ siteName, navItems, settings, children }: AppShellPro
         <StoreFooter siteName={siteName} settings={settings} />
       </div>
     );
+  }
+
+  // Homepage: selfContained marketing templates own their full layout.
+  if (template.selfContained && pathname === '/') {
+    return <>{children}</>;
   }
 
   return (

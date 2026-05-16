@@ -1,10 +1,13 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { Manrope } from 'next/font/google';
 import { Search, User, ShoppingBag } from 'lucide-react';
 
 import type { HeroBlock, LandingPage, SiteSettings } from '@/features/cms/types';
 import styles from './volta.module.css';
+
+const fontManrope = Manrope({ subsets: ['latin'], variable: '--font-manrope', weight: ['400', '500', '600', '700', '800'], display: 'swap' });
 
 type VoltaHomeProps = {
   page: LandingPage;
@@ -800,7 +803,7 @@ export function VoltaHome({ page, settings }: VoltaHomeProps) {
   const heroCtaLabel = heroBlock?.primaryCtaLabel || 'Shop now';
 
   return (
-    <div className={styles.root}>
+    <div className={`${styles.root} ${fontManrope.variable}`}>
       <VAnnounce />
       <VNav siteName={siteName} navLinks={navLinks} />
       <VHero title={heroTitle} tagline={heroTagline} ctaLabel={heroCtaLabel} />

@@ -22,6 +22,7 @@ type PageEditorScreenProps = {
 function PageEditorScreen({ user }: PageEditorScreenProps) {
   const params = useParams<{ id: string }>();
   const [page, setPage] = useState<LandingPage | null>(null);
+  const [storefrontEnabled, setStorefrontEnabled] = useState(false);
   const [loading, setLoading] = useState(true);
   const canEditContent = user.permissions.includes('content:edit');
 
@@ -37,8 +38,9 @@ function PageEditorScreen({ user }: PageEditorScreenProps) {
         setLoading(false);
         return;
       }
-      const payload = (await response.json()) as { page: LandingPage };
+      const payload = (await response.json()) as { page: LandingPage; storefrontEnabled?: boolean };
       setPage(payload.page);
+      setStorefrontEnabled(Boolean(payload.storefrontEnabled));
       setLoading(false);
     }
     if (params.id) void load();
@@ -54,14 +56,14 @@ function PageEditorScreen({ user }: PageEditorScreenProps) {
   if (loading) return <p>Loading page editor...</p>;
   if (!page) return <p>Page not found.</p>;
 
-  return <PageEditorForm initialPage={page} canPublish={user.permissions.includes('content:publish')} />;
+  return <PageEditorForm initialPage={page} canPublish={user.permissions.includes('content:publish')} storefrontEnabled={storefrontEnabled} />;
 }
 
 export default function AdminPageById() {
   return (
     <AdminShell
       title="Edit Landing Page"
-      description="Update SEO and content. Homepage supports typed block composition."
+      description="Update SEO and content. In store mode, Home controls the storefront headline and metadata."
     >
       {(user) => <PageEditorScreen user={user} />}
     </AdminShell>

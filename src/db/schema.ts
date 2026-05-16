@@ -375,6 +375,7 @@ export const customersTable = pgTable(
     city: text('city').notNull().default(''),
     province: text('province').notNull().default(''),
     postalCode: text('postal_code').notNull().default(''),
+    passwordHash: text('password_hash'),
     totalOrders: integer('total_orders').notNull().default(0),
     totalSpent: numeric('total_spent', { precision: 14, scale: 2 }).notNull().default('0'),
     createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' }).notNull(),
@@ -474,5 +475,20 @@ export const couponsTable = pgTable(
   (table) => ({
     codeUnique: uniqueIndex('coupons_code_unique').on(table.code),
     activeIdx: index('coupons_active_idx').on(table.active)
+  })
+);
+
+export const customerSessionsTable = pgTable(
+  'customer_sessions',
+  {
+    id: text('id').primaryKey(),
+    customerId: text('customer_id').notNull(),
+    sessionToken: text('session_token').notNull(),
+    expiresAt: timestamp('expires_at', { withTimezone: true, mode: 'string' }).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' }).notNull()
+  },
+  (table) => ({
+    sessionTokenUnique: uniqueIndex('customer_sessions_token_unique').on(table.sessionToken),
+    customerIdx: index('customer_sessions_customer_idx').on(table.customerId)
   })
 );

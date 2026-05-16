@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { Sora, Playfair_Display, Inter_Tight, Instrument_Serif, JetBrains_Mono, Lato, Manrope } from 'next/font/google';
+import { Sora, Playfair_Display, Inter_Tight, Instrument_Serif, JetBrains_Mono } from 'next/font/google';
 import { Suspense } from 'react';
 import { headers } from 'next/headers';
 
@@ -57,19 +57,6 @@ const fontMono = JetBrains_Mono({
   display: 'swap'
 });
 
-const fontLato = Lato({
-  subsets: ['latin'],
-  variable: '--font-lato',
-  weight: ['300', '400', '700'],
-  display: 'swap'
-});
-
-const fontManrope = Manrope({
-  subsets: ['latin'],
-  variable: '--font-manrope',
-  weight: ['400', '500', '600', '700', '800'],
-  display: 'swap'
-});
 
 export async function generateMetadata(): Promise<Metadata> {
   const settings = await getSiteSettings();
@@ -141,7 +128,7 @@ export default async function RootLayout({
   };
 
   return (
-    <html lang={settings.general.language || 'en'} className={`${fontBody.variable} ${fontAccent.variable} ${fontTight.variable} ${fontSerif.variable} ${fontMono.variable} ${fontLato.variable} ${fontManrope.variable}`}>
+    <html lang={settings.general.language || 'en'} className={`${fontBody.variable} ${fontAccent.variable} ${fontTight.variable} ${fontSerif.variable} ${fontMono.variable}`}>
       <body className="v2-site">
         <ChunkRecoveryScript nonce={nonce} />
         <Suspense fallback={null}>

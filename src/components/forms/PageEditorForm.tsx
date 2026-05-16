@@ -14,6 +14,7 @@ import { MediaPickerField } from '@/components/admin/MediaPickerField';
 type PageEditorFormProps = {
   initialPage: LandingPage;
   canPublish?: boolean;
+  storefrontEnabled?: boolean;
 };
 
 type SaveMode = 'manual' | 'autosave';
@@ -148,7 +149,7 @@ function extractBlockPayload(block: HomeBlock) {
   );
 }
 
-export function PageEditorForm({ initialPage, canPublish = true }: PageEditorFormProps) {
+export function PageEditorForm({ initialPage, canPublish = true, storefrontEnabled = false }: PageEditorFormProps) {
   const [page, setPage] = useState(initialPage);
   const [baseline, setBaseline] = useState(initialPage);
   const [saving, setSaving] = useState(false);
@@ -166,6 +167,7 @@ export function PageEditorForm({ initialPage, canPublish = true }: PageEditorFor
   }, [initialPage]);
 
   const isHome = page.id === 'home';
+  const isStorefrontHome = storefrontEnabled && isHome;
   const blocks = useMemo(() => page.homeBlocks ?? [], [page.homeBlocks]);
   const isDirty = useMemo(() => JSON.stringify(page) !== JSON.stringify(baseline), [page, baseline]);
   const previewHref = normalizePreviewHref(page);
@@ -472,6 +474,26 @@ export function PageEditorForm({ initialPage, canPublish = true }: PageEditorFor
         <p className="admin-subtle">Draft preview opens the current saved version in preview mode. Save first if you changed the slug or sections.</p>
       </section>
 
+      {isStorefrontHome ? (
+        <section className="admin-card">
+          <h2>Storefront editing</h2>
+          <p className="admin-subtle">
+            The shop website uses this Home page for <strong>/</strong> metadata and the first enabled hero block for the storefront headline, eyebrow, and intro text.
+          </p>
+          <div className="admin-actions" style={{ marginTop: 12 }}>
+            <AdminActionButton href="/admin/products" icon="inventory_2" variant="secondary">
+              Products
+            </AdminActionButton>
+            <AdminActionButton href="/admin/product-categories" icon="category" variant="secondary">
+              Categories
+            </AdminActionButton>
+            <AdminActionButton href="/admin/settings" icon="tune" variant="secondary">
+              Template, header, footer
+            </AdminActionButton>
+          </div>
+        </section>
+      ) : null}
+
       <ContentRevisionPanel<LandingPage>
         entityType="page"
         entityId={page.id}
@@ -633,7 +655,12 @@ export function PageEditorForm({ initialPage, canPublish = true }: PageEditorFor
       {isHome ? (
         <section className="admin-card">
           <div className="admin-inline-header">
-            <h2>Homepage blocks</h2>
+            <div>
+              <h2>{isStorefrontHome ? 'Storefront hero blocks' : 'Homepage blocks'}</h2>
+              {isStorefrontHome ? (
+                <p className="admin-subtle">For Volta and Javanesa shop templates, the first enabled hero block feeds the shop hero copy. Other store content is generated from products and categories.</p>
+              ) : null}
+            </div>
             <div className="admin-actions">
               <select value={nextType} onChange={(event) => setNextType(event.target.value as HomeBlockType)}>
                 {blockTypes.map((type) => (

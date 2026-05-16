@@ -3,6 +3,8 @@
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 
+import '@/components/shop/store.css';
+
 import type { Product, ProductCategory } from '@/features/commerce/types';
 
 type ProductListPayload = {

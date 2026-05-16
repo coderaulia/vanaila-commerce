@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 
+import { modules } from '@/config/modules';
 import { assertAdminPermission, assertAdminRequest, logAdminAuditEvent } from '@/features/cms/adminAuth';
 import { captureContentRevision } from '@/features/cms/contentRevisions';
 import { getPageById, upsertPage } from '@/features/cms/contentStore';
@@ -24,7 +25,7 @@ export async function GET(request: Request, { params }: RouteContext) {
   if (!page) {
     return NextResponse.json({ error: 'Page not found' }, { status: 404 });
   }
-  return NextResponse.json({ page });
+  return NextResponse.json({ page, storefrontEnabled: modules.ENABLE_STORE_MODULE });
 }
 
 export async function PUT(request: Request, { params }: RouteContext) {
