@@ -42,10 +42,19 @@ function formatCurrency(value: number): string {
   return `Rp ${value.toLocaleString('id-ID')}`;
 }
 
-export function CheckoutPageClient() {
+type CheckoutPageClientProps = {
+  midtransEnabled: boolean;
+  manualTransferEnabled: boolean;
+  freeShippingThreshold: number;
+  minOrderAmount: number;
+};
+
+export function CheckoutPageClient({ midtransEnabled, manualTransferEnabled, freeShippingThreshold, minOrderAmount }: CheckoutPageClientProps) {
   const [mounted, setMounted] = useState(false);
   const [form, setForm] = useState<CheckoutForm>(initialForm);
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('manual_transfer');
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(() =>
+    manualTransferEnabled ? 'manual_transfer' : 'midtrans'
+  );
   const [couponCode, setCouponCodeInput] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -283,49 +292,53 @@ export function CheckoutPageClient() {
           <section className="border border-gray-100 p-5 sm:p-6">
             <h2 className="text-sm font-bold uppercase tracking-wide text-gray-950">Payment</h2>
             <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <label
-                className={`flex min-h-24 cursor-pointer gap-3 border p-4 transition-colors ${
-                  paymentMethod === 'manual_transfer' ? 'border-black' : 'border-gray-200 hover:border-gray-400'
-                }`}
-              >
-                <input
-                  type="radio"
-                  name="payment"
-                  value="manual_transfer"
-                  checked={paymentMethod === 'manual_transfer'}
-                  onChange={() => setPaymentMethod('manual_transfer')}
-                  className="mt-1"
-                />
-                <span>
-                  <span className="block text-sm font-semibold text-gray-950">Bank transfer</span>
-                  <span className="mt-1 block text-xs leading-5 text-gray-500">
-                    Place the order now and complete payment after confirmation.
+              {manualTransferEnabled && (
+                <label
+                  className={`flex min-h-24 cursor-pointer gap-3 border p-4 transition-colors ${
+                    paymentMethod === 'manual_transfer' ? 'border-black' : 'border-gray-200 hover:border-gray-400'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="payment"
+                    value="manual_transfer"
+                    checked={paymentMethod === 'manual_transfer'}
+                    onChange={() => setPaymentMethod('manual_transfer')}
+                    className="mt-1"
+                  />
+                  <span>
+                    <span className="block text-sm font-semibold text-gray-950">Bank transfer</span>
+                    <span className="mt-1 block text-xs leading-5 text-gray-500">
+                      Place the order now and complete payment after confirmation.
+                    </span>
                   </span>
-                </span>
-              </label>
-              <label
-                className={`flex min-h-24 cursor-pointer gap-3 border p-4 transition-colors ${
-                  paymentMethod === 'midtrans' ? 'border-black' : 'border-gray-200 hover:border-gray-400'
-                }`}
-              >
-                <input
-                  type="radio"
-                  name="payment"
-                  value="midtrans"
-                  checked={paymentMethod === 'midtrans'}
-                  onChange={() => setPaymentMethod('midtrans')}
-                  className="mt-1"
-                />
-                <span>
-                  <span className="flex items-center gap-2 text-sm font-semibold text-gray-950">
-                    <CreditCard aria-hidden="true" className="h-4 w-4" />
-                    Online payment
+                </label>
+              )}
+              {midtransEnabled && (
+                <label
+                  className={`flex min-h-24 cursor-pointer gap-3 border p-4 transition-colors ${
+                    paymentMethod === 'midtrans' ? 'border-black' : 'border-gray-200 hover:border-gray-400'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="payment"
+                    value="midtrans"
+                    checked={paymentMethod === 'midtrans'}
+                    onChange={() => setPaymentMethod('midtrans')}
+                    className="mt-1"
+                  />
+                  <span>
+                    <span className="flex items-center gap-2 text-sm font-semibold text-gray-950">
+                      <CreditCard aria-hidden="true" className="h-4 w-4" />
+                      Online payment
+                    </span>
+                    <span className="mt-1 block text-xs leading-5 text-gray-500">
+                      Pay securely via Midtrans.
+                    </span>
                   </span>
-                  <span className="mt-1 block text-xs leading-5 text-gray-500">
-                    Continue to Midtrans if online payment is configured.
-                  </span>
-                </span>
-              </label>
+                </label>
+              )}
             </div>
           </section>
 
@@ -393,10 +406,24 @@ export function CheckoutPageClient() {
                   {hasCompletePricing ? formatCurrency(subtotal) : 'Calculated at checkout'}
                 </dd>
               </div>
+              {minOrderAmount > 0 && hasCompletePricing && subtotal < minOrderAmount && (
+                <p role="alert" className="text-xs text-red-600">
+                  Minimum order is {formatCurrency(minOrderAmount)}.
+                </p>
+              )}
               <div className="flex justify-between gap-4">
                 <dt className="text-gray-500">Shipping</dt>
-                <dd className="font-semibold text-gray-950">Calculated at checkout</dd>
+                <dd className="font-semibold text-gray-950">
+                  {freeShippingThreshold > 0 && hasCompletePricing && subtotal >= freeShippingThreshold
+                    ? <span className="text-green-700">Free</span>
+                    : 'Calculated at checkout'}
+                </dd>
               </div>
+              {freeShippingThreshold > 0 && hasCompletePricing && subtotal < freeShippingThreshold && (
+                <p className="text-xs text-gray-500">
+                  Add {formatCurrency(freeShippingThreshold - subtotal)} more for free shipping.
+                </p>
+              )}
             </dl>
           </div>
         </aside>

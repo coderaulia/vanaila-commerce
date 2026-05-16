@@ -1,3 +1,5 @@
+import type { PaymentSettings } from '@/features/cms/types';
+
 import type { Order, OrderItem } from './types';
 
 function escapeHtml(value: unknown) {
@@ -13,7 +15,7 @@ function escapeHtml(value: unknown) {
  * Sends order confirmation email via Resend.
  * Fails silently — order processing should not be blocked by email failures.
  */
-export async function sendOrderConfirmationEmail(order: Order, items: OrderItem[], customerEmail: string): Promise<void> {
+export async function sendOrderConfirmationEmail(order: Order, items: OrderItem[], customerEmail: string, paymentSettings?: PaymentSettings): Promise<void> {
   const apiKey = process.env.RESEND_API_KEY?.trim();
   const fromAddress = process.env.RESEND_FROM_EMAIL?.trim() || 'orders@example.com';
   if (!apiKey) return;
@@ -48,7 +50,15 @@ export async function sendOrderConfirmationEmail(order: Order, items: OrderItem[
       <p style="font-size:18px"><strong>Total:</strong> Rp ${order.total.toLocaleString('id-ID')}</p>
       <hr/>
       <p><strong>Payment method:</strong> ${order.paymentMethod === 'midtrans' ? 'Online Payment (Midtrans)' : 'Manual Bank Transfer'}</p>
-      ${order.paymentMethod === 'manual_transfer' ? '<p>Please transfer the total amount to our bank account. Your order will be processed after payment confirmation.</p>' : ''}
+      ${order.paymentMethod === 'manual_transfer' ? `
+        <div style="background:#f9f9f9;border:1px solid #e0e0e0;padding:16px;margin:12px 0;border-radius:4px">
+          <p style="margin:0 0 8px"><strong>Transfer to:</strong></p>
+          ${paymentSettings?.bankName ? `<p style="margin:4px 0">Bank: ${escapeHtml(paymentSettings.bankName)}</p>` : ''}
+          ${paymentSettings?.bankAccountNumber ? `<p style="margin:4px 0">Account: ${escapeHtml(paymentSettings.bankAccountNumber)}</p>` : ''}
+          ${paymentSettings?.bankAccountHolder ? `<p style="margin:4px 0">Name: ${escapeHtml(paymentSettings.bankAccountHolder)}</p>` : ''}
+          ${paymentSettings?.paymentInstructions ? `<p style="margin:8px 0 0">${escapeHtml(paymentSettings.paymentInstructions)}</p>` : '<p style="margin:8px 0 0">Include your order number in the transfer description. Your order will be processed after payment confirmation.</p>'}
+        </div>
+      ` : ''}
       <p><strong>Shipping to:</strong><br/>${escapeHtml(order.shippingName)}<br/>${escapeHtml(order.shippingAddress)}<br/>${escapeHtml(order.shippingCity)}, ${escapeHtml(order.shippingProvince)} ${escapeHtml(order.shippingPostalCode)}<br/>${escapeHtml(order.shippingPhone)}</p>
     </div>
   `;

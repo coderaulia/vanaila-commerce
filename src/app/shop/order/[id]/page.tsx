@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { modules } from '@/config/modules';
 import { verifyOrderReceiptToken } from '@/features/commerce/orderReceipt';
 import { getOrderById } from '@/features/commerce/store';
+import { getSettings } from '@/features/cms/contentStore';
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -14,8 +15,10 @@ export default async function OrderConfirmationPage({ params, searchParams }: Pr
 
   const { id } = await params;
   const { token } = (await searchParams) ?? {};
-  const order = await getOrderById(id);
+  const [order, settings] = await Promise.all([getOrderById(id), getSettings()]);
   if (!order || !verifyOrderReceiptToken(order, token)) notFound();
+
+  const { payments: paymentSettings } = settings;
 
   return (
     <main className="order-confirmation-page">
@@ -32,9 +35,15 @@ export default async function OrderConfirmationPage({ params, searchParams }: Pr
         {order.paymentMethod === 'manual_transfer' && order.paymentStatus === 'pending' && (
           <div className="order-transfer-info">
             <h2>Bank Transfer Instructions</h2>
-            <p>Please transfer <strong>Rp {order.total.toLocaleString('id-ID')}</strong> to our bank account.</p>
+            <p>Please transfer <strong>Rp {order.total.toLocaleString('id-ID')}</strong> to:</p>
+            {paymentSettings.bankName && <p><strong>Bank:</strong> {paymentSettings.bankName}</p>}
+            {paymentSettings.bankAccountNumber && <p><strong>Account number:</strong> {paymentSettings.bankAccountNumber}</p>}
+            {paymentSettings.bankAccountHolder && <p><strong>Account name:</strong> {paymentSettings.bankAccountHolder}</p>}
             <p>Include your order number <strong>{order.orderNumber}</strong> in the transfer description.</p>
-            <p>Your order will be processed after payment confirmation.</p>
+            {paymentSettings.paymentInstructions
+              ? <p>{paymentSettings.paymentInstructions}</p>
+              : <p>Your order will be processed after payment confirmation.</p>
+            }
           </div>
         )}
 

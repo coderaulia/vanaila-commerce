@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { modules } from '@/config/modules';
 import { processCheckout } from '@/features/commerce/checkout';
 import { sendOrderConfirmationEmail } from '@/features/commerce/orderEmail';
+import { getSettings } from '@/features/cms/contentStore';
 import { assertRateLimit } from '@/services/requestSecurity';
 import type { CheckoutPayload } from '@/features/commerce/types';
 
@@ -16,6 +17,10 @@ const MAX = {
   province: 128,
   postalCode: 16,
   couponCode: 64,
+  shippingId: 128,
+  shippingLabel: 256,
+  shippingCode: 32,
+  shippingService: 64,
   notes: 1024
 };
 
@@ -28,6 +33,33 @@ function cap(value: unknown, max: number): string {
 
 function asPaymentMethod(value: unknown): CheckoutPayload['paymentMethod'] | null {
   return value === 'midtrans' || value === 'manual_transfer' ? value : null;
+}
+
+function normalizeShipping(value: unknown): CheckoutPayload['shipping'] | undefined {
+  if (!value || typeof value !== 'object') return undefined;
+  const record = value as Record<string, unknown>;
+  const destinationId = cap(record.destinationId, MAX.shippingId);
+  const destinationLabel = cap(record.destinationLabel, MAX.shippingLabel);
+  const courierCode = cap(record.courierCode, MAX.shippingCode).toLowerCase();
+  const serviceCode = cap(record.serviceCode, MAX.shippingService);
+  const serviceName = cap(record.serviceName, MAX.shippingService);
+  const cost = Number(record.cost ?? 0);
+  const etd = cap(record.etd, MAX.shippingService);
+
+  if (!destinationId || !courierCode || !serviceCode || !Number.isFinite(cost) || cost < 0) {
+    return undefined;
+  }
+
+  return {
+    destinationId,
+    destinationLabel,
+    courierCode,
+    serviceCode,
+    serviceName: serviceName || serviceCode,
+    cost: Math.round(cost),
+    etd,
+    provider: 'rajaongkir'
+  };
 }
 
 function normalizeItems(value: unknown): CheckoutPayload['items'] | null {
@@ -75,6 +107,16 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Invalid payment method' }, { status: 400 });
   }
 
+  const settings = await getSettings();
+  const { payments: paymentSettings, store: storeSettings } = settings;
+
+  if (paymentMethod === 'midtrans' && !paymentSettings.midtransEnabled) {
+    return NextResponse.json({ error: 'Online payment is not currently available' }, { status: 400 });
+  }
+  if (paymentMethod === 'manual_transfer' && !paymentSettings.manualTransferEnabled) {
+    return NextResponse.json({ error: 'Bank transfer is not currently available' }, { status: 400 });
+  }
+
   // Apply length caps to all string fields before any further processing
   const body: CheckoutPayload = {
     items,
@@ -88,6 +130,7 @@ export async function POST(request: Request) {
       postalCode: cap(raw.customer.postalCode, MAX.postalCode)
     },
     paymentMethod,
+    shipping: normalizeShipping(raw.shipping),
     couponCode: raw.couponCode ? cap(raw.couponCode, MAX.couponCode) : undefined,
     notes: raw.notes ? cap(raw.notes, MAX.notes) : undefined
   };
@@ -97,10 +140,10 @@ export async function POST(request: Request) {
   }
 
   try {
-    const result = await processCheckout(body);
+    const result = await processCheckout(body, storeSettings);
 
     // Send confirmation email (non-blocking)
-    sendOrderConfirmationEmail(result.order, result.items, body.customer.email).catch(() => {});
+    sendOrderConfirmationEmail(result.order, result.items, body.customer.email, paymentSettings).catch(() => {});
 
     return NextResponse.json({
       order: result.order,

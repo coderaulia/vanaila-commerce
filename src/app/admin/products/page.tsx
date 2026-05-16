@@ -13,6 +13,54 @@ type ProductListPayload = {
   meta: { total: number; page: number; pageSize: number };
 };
 
+type LowStockPayload = {
+  variants: { variantId: string; sku: string; variantName: string; stock: number; productId: string; productTitle: string; productSlug: string }[];
+  threshold: number;
+};
+
+function LowStockBanner({ canEdit }: { canEdit: boolean }) {
+  const [data, setData] = useState<LowStockPayload | null>(null);
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    fetch('/api/admin/products/low-stock')
+      .then((res) => res.ok ? res.json() : null)
+      .then((json) => { if (json) setData(json as LowStockPayload); })
+      .catch(() => {});
+  }, []);
+
+  if (!data || data.variants.length === 0) return null;
+
+  return (
+    <div className="mb-4 border border-amber-200 bg-amber-50 px-4 py-3 text-sm">
+      <div className="flex items-center justify-between gap-4">
+        <span className="font-semibold text-amber-800">
+          ⚠ {data.variants.length} variant{data.variants.length !== 1 ? 's' : ''} low on stock (≤ {data.threshold} units)
+        </span>
+        <button type="button" onClick={() => setOpen((prev) => !prev)} className="text-amber-700 underline hover:text-amber-900">
+          {open ? 'Hide' : 'Show'}
+        </button>
+      </div>
+      {open && (
+        <ul className="mt-3 space-y-1">
+          {data.variants.map((v) => (
+            <li key={v.variantId} className="flex items-center justify-between gap-4 text-amber-900">
+              <span>
+                {canEdit
+                  ? <Link href={`/admin/products/${v.productId}`} className="underline hover:no-underline">{v.productTitle}</Link>
+                  : v.productTitle
+                }
+                {' — '}{v.variantName} ({v.sku})
+              </span>
+              <span className="shrink-0 font-semibold">{v.stock} left</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 function ProductsList({ user }: { user: AdminSessionUser }) {
   const [data, setData] = useState<ProductListPayload | null>(null);
   const [loading, setLoading] = useState(true);
@@ -43,6 +91,7 @@ function ProductsList({ user }: { user: AdminSessionUser }) {
 
   return (
     <div>
+      <LowStockBanner canEdit={canEdit} />
       <div className="admin-toolbar">
         <input
           type="search"

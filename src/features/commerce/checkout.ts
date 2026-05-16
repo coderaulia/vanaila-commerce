@@ -9,10 +9,14 @@ import {
   ordersTable,
   productVariantsTable
 } from '@/db/schema';
+import { env } from '@/services/env';
 import { and, eq, sql } from 'drizzle-orm';
+
+import type { StoreSettings } from '@/features/cms/types';
 
 import type { CheckoutPayload, Order, OrderItem } from './types';
 import { createOrderReceiptToken } from './orderReceipt';
+import { estimateOrderWeightGrams, quoteShippingCosts, resolveFreeShippingThreshold } from './shipping';
 
 const nowIso = () => new Date().toISOString();
 const MAX_CHECKOUT_QUANTITY = 99;
@@ -45,6 +49,52 @@ function normalizeCheckoutItems(items: CheckoutPayload['items']) {
   return normalized;
 }
 
+async function resolveSelectedShipping(input: {
+  payload: CheckoutPayload;
+  items: Array<{ variantId: string; quantity: number }>;
+  variantMap: Map<string, { weight: unknown }>;
+  subtotal: number;
+  freeShippingThreshold?: number | null;
+}): Promise<{ cost: number; note: string }> {
+  const selection = input.payload.shipping;
+  if (!selection?.destinationId || !selection.courierCode || !selection.serviceCode) {
+    return { cost: 0, note: '' };
+  }
+
+  const weightGrams = estimateOrderWeightGrams(
+    input.items.map((item) => ({
+      quantity: item.quantity,
+      variant: { weight: input.variantMap.get(item.variantId)?.weight as number | string | null }
+    }))
+  );
+  const quotes = await quoteShippingCosts({
+    originId: env.shippingOriginId,
+    destinationId: selection.destinationId,
+    weightGrams,
+    couriers: [selection.courierCode]
+  });
+  const quote = quotes.find(
+    (item) =>
+      item.courierCode.toLowerCase() === selection.courierCode.toLowerCase() &&
+      item.serviceCode.toLowerCase() === selection.serviceCode.toLowerCase()
+  );
+
+  if (!quote) {
+    throw new Error('Selected shipping service is no longer available');
+  }
+
+  const freeThreshold = input.freeShippingThreshold || resolveFreeShippingThreshold();
+  const cost = freeThreshold && input.subtotal >= freeThreshold ? 0 : quote.cost;
+  const note = [
+    `Shipping: ${quote.courierName} ${quote.serviceName}`,
+    quote.etd ? `ETD ${quote.etd}` : '',
+    selection.destinationLabel ? `Destination ${selection.destinationLabel}` : '',
+    `Weight ${weightGrams}g`
+  ].filter(Boolean).join(' | ');
+
+  return { cost, note };
+}
+
 export type CheckoutResult = {
   order: Order;
   items: OrderItem[];
@@ -52,7 +102,7 @@ export type CheckoutResult = {
   paymentUrl?: string;
 };
 
-export async function processCheckout(payload: CheckoutPayload): Promise<CheckoutResult> {
+export async function processCheckout(payload: CheckoutPayload, storeSettings?: StoreSettings): Promise<CheckoutResult> {
   const db = getDb();
   const checkoutItems = normalizeCheckoutItems(payload.items);
 
@@ -177,7 +227,21 @@ export async function processCheckout(payload: CheckoutPayload): Promise<Checkou
       }
     }
 
-    const total = subtotal - discount;
+    if (storeSettings?.minOrderAmount && storeSettings.minOrderAmount > 0 && subtotal < storeSettings.minOrderAmount) {
+      throw new Error(`Minimum order amount is Rp ${storeSettings.minOrderAmount.toLocaleString('id-ID')}`);
+    }
+
+    const shipping = await resolveSelectedShipping({
+      payload,
+      items: checkoutItems,
+      variantMap: variantMap as Map<string, { weight: unknown }>,
+      subtotal,
+      freeShippingThreshold: storeSettings?.freeShippingThreshold
+    });
+    const shippingCost = shipping.cost;
+    const notes = [payload.notes || '', shipping.note].filter(Boolean).join('\n\n');
+
+    const total = subtotal - discount + shippingCost;
     const orderId = randomUUID();
     const orderNumber = generateOrderNumber();
     const orderRow = {
@@ -190,7 +254,7 @@ export async function processCheckout(payload: CheckoutPayload): Promise<Checkou
       paymentReference: null,
       subtotal: String(subtotal),
       discount: String(discount),
-      shippingCost: '0',
+      shippingCost: String(shippingCost),
       total: String(total),
       couponId,
       shippingName: payload.customer.name,
@@ -199,7 +263,7 @@ export async function processCheckout(payload: CheckoutPayload): Promise<Checkou
       shippingCity: payload.customer.city,
       shippingProvince: payload.customer.province,
       shippingPostalCode: payload.customer.postalCode,
-      notes: payload.notes || '',
+      notes,
       createdAt: now,
       updatedAt: now
     };
@@ -266,7 +330,7 @@ export async function processCheckout(payload: CheckoutPayload): Promise<Checkou
       paymentReference: null,
       subtotal,
       discount,
-      shippingCost: 0,
+      shippingCost,
       total,
       couponId,
       shippingName: payload.customer.name,
@@ -275,7 +339,7 @@ export async function processCheckout(payload: CheckoutPayload): Promise<Checkou
       shippingCity: payload.customer.city,
       shippingProvince: payload.customer.province,
       shippingPostalCode: payload.customer.postalCode,
-      notes: payload.notes || '',
+      notes,
       createdAt: now,
       updatedAt: now,
       items: orderItems.map((item) => ({ ...item, orderId }))
