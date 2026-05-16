@@ -457,6 +457,7 @@ export function validateSiteSettings(payload: unknown): SiteSettings | null {
   const sitemap = isObject(payload.sitemap) ? payload.sitemap : {};
   const store = isObject(payload.store) ? payload.store : {};
   const payments = isObject(payload.payments) ? payload.payments : {};
+  const appearance = isObject(payload.appearance) ? payload.appearance : {};
 
   const siteName = asString(general.siteName) || asString(payload.siteName);
   const baseUrl = asSafeBaseUrl(general.baseUrl) || asSafeBaseUrl(payload.baseUrl);
@@ -599,6 +600,9 @@ export function validateSiteSettings(payload: unknown): SiteSettings | null {
       bankAccountNumber: asString(payments.bankAccountNumber),
       bankAccountHolder: asString(payments.bankAccountHolder),
       paymentInstructions: asString(payments.paymentInstructions)
+    },
+    appearance: {
+      templateId: asString(appearance.templateId) || 'vanaila'
     },
     siteName,
     baseUrl,

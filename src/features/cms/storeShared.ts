@@ -70,6 +70,7 @@ export function normalizeSettings(input: unknown): SiteSettings {
   const sitemap = isObject(source.sitemap) ? source.sitemap : {};
   const store = isObject(source.store) ? source.store : {};
   const payments = isObject(source.payments) ? source.payments : {};
+  const appearance = isObject(source.appearance) ? source.appearance : {};
 
   const next: SiteSettings = {
     ...defaults,
@@ -104,7 +105,8 @@ export function normalizeSettings(input: unknown): SiteSettings {
     seo: { ...defaults.seo, ...seo },
     sitemap: { ...defaults.sitemap, ...sitemap },
     store: { ...defaults.store, ...store },
-    payments: { ...defaults.payments, ...payments }
+    payments: { ...defaults.payments, ...payments },
+    appearance: { ...defaults.appearance, ...appearance }
   } as SiteSettings;
 
   if (typeof source.siteName === 'string' && source.siteName.trim().length > 0) {

@@ -4,6 +4,7 @@ import { modules } from '@/config/modules';
 import { ShopGrid } from '@/components/shop/ShopGrid';
 import { ShopHero } from '@/components/shop/ShopHero';
 import { VanailaRedesignHome } from '@/components/home/VanailaRedesignHome';
+import { JavanesaHome } from '@/components/home/JavanesaHome';
 import { MarketingPageRenderer } from '@/components/MarketingPageRenderer';
 import { buildMetadata } from '@/features/cms/seo';
 import { getPublishedPage, getSiteSettings } from '@/features/cms/publicApi';
@@ -48,7 +49,10 @@ export default async function HomePage() {
   }
 
   if (!homePage) notFound();
+
   if (homePage.homeBlocks && homePage.homeBlocks.length > 0) {
+    const templateId = settings.appearance?.templateId ?? 'vanaila';
+    if (templateId === 'javanesa') return <JavanesaHome page={homePage} settings={settings} />;
     return <VanailaRedesignHome page={homePage} />;
   }
   return <MarketingPageRenderer page={homePage} />;

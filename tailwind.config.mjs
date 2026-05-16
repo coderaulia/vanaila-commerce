@@ -1,6 +1,7 @@
 /** @type {import('tailwindcss').Config} */
 const config = {
   content: ['./src/**/*.{js,ts,jsx,tsx,mdx}'],
+  darkMode: 'class',
   corePlugins: {
     preflight: false
   },
@@ -19,7 +20,16 @@ const config = {
         vBlue: '#0033FF',
         vBlueGlow: '#2D5FFF',
         vOrange: '#FF5B22',
-        vLime: '#C8E64B'
+        vLime: '#C8E64B',
+        // Javanesa template palette
+        primary: '#4a5d23',
+        accent: '#c9a66b',
+        'background-light': '#fcfbfa',
+        'background-dark': '#1a1c18',
+        'surface-light': '#f3f0ea',
+        'surface-dark': '#2c3028',
+        'text-light': '#2d3326',
+        'text-dark': '#e8eae3',
       },
       fontFamily: {
         display: ['var(--font-body)', 'ui-sans-serif', 'system-ui', 'sans-serif'],

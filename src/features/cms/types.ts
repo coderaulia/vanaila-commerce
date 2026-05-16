@@ -260,6 +260,10 @@ export type SocialSettings = {
   emailHref: string;
 };
 
+export type AppearanceSettings = {
+  templateId: string;
+};
+
 export type BrandingSettings = {
   headerLogo: string;
   footerLogo: string;
@@ -358,6 +362,7 @@ export type SiteSettings = {
   contact: ContactSettings;
   social: SocialSettings;
   branding: BrandingSettings;
+  appearance: AppearanceSettings;
   writing: WritingSettings;
   reading: ReadingSettings;
   discussion: DiscussionSettings;

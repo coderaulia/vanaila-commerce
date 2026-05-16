@@ -3,6 +3,7 @@
 import { usePathname } from 'next/navigation';
 
 import type { SiteSettings } from '@/features/cms/types';
+import { getTemplate } from '@/config/templates';
 
 import { CustomCursorProvider } from './CustomCursor';
 import { SiteFooter } from './SiteFooter';
@@ -25,6 +26,12 @@ type AppShellProps = {
 export function AppShell({ siteName, navItems, settings, children }: AppShellProps) {
   const pathname = usePathname();
   const isAdminRoute = pathname === '/admin' || pathname.startsWith('/admin/');
+
+  const template = getTemplate(settings.appearance?.templateId ?? 'vanaila');
+  if (template.selfContained && (pathname === '/' || pathname.startsWith('/shop') || pathname === '/cart' || pathname === '/checkout')) {
+    return <>{children}</>;
+  }
+
   const isStoreRoute =
     pathname === '/' ||
     pathname === '/shop' ||

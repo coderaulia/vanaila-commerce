@@ -12,12 +12,13 @@ import { JsonImportExportCard } from '@/components/admin/JsonImportExportCard';
 import { MediaPickerField } from '@/components/admin/MediaPickerField';
 import { NavigationLinksEditor } from '@/components/admin/NavigationLinksEditor';
 import type { Category, LandingPage, SiteSettings } from '@/features/cms/types';
+import { TEMPLATES } from '@/config/templates';
 
 type SettingsResponse = { settings: SiteSettings };
 type PageResponse = { pages: LandingPage[] };
 type CategoriesResponse = { categories: Category[] };
 
-type SettingsTab = 'general' | 'navigation' | 'reading' | 'store' | 'payments' | 'shipping' | 'media' | 'seo' | 'sitemap';
+type SettingsTab = 'general' | 'navigation' | 'reading' | 'store' | 'payments' | 'shipping' | 'media' | 'seo' | 'sitemap' | 'appearance';
 
 type ShippingStatus = {
   configured: boolean;
@@ -33,6 +34,7 @@ const tabs: Array<{ id: SettingsTab; label: string }> = [
   { id: 'general', label: 'General' },
   { id: 'navigation', label: 'Navigation' },
   { id: 'reading', label: 'Reading' },
+  { id: 'appearance', label: 'Appearance' },
   { id: 'store', label: 'Store' },
   { id: 'payments', label: 'Payments' },
   { id: 'shipping', label: 'Shipping' },
@@ -780,6 +782,48 @@ function SettingsEditor() {
                 onChange={(e) => setSettings({ ...settings, sitemap: { ...settings.sitemap, includeLastModified: e.target.checked } })}
               />
             </label>
+          </div>
+        ) : null}
+
+        {activeTab === 'appearance' ? (
+          <div>
+            <p style={{ marginBottom: 24, color: '#555' }}>
+              Choose a template for your homepage. The template controls layout and design — your content blocks stay the same.
+            </p>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 16 }}>
+              {TEMPLATES.map((tpl) => {
+                const active = (settings.appearance?.templateId ?? 'vanaila') === tpl.id;
+                return (
+                  <button
+                    key={tpl.id}
+                    type="button"
+                    onClick={() =>
+                      setSettings({
+                        ...settings,
+                        appearance: { ...(settings.appearance ?? {}), templateId: tpl.id }
+                      })
+                    }
+                    style={{
+                      textAlign: 'left',
+                      padding: 20,
+                      border: `2px solid ${active ? 'var(--primary, #0033FF)' : '#ddd'}`,
+                      borderRadius: 8,
+                      background: active ? 'var(--primary-soft, #f0f3ff)' : '#fff',
+                      cursor: 'pointer',
+                      transition: 'border-color 0.15s'
+                    }}
+                  >
+                    <strong style={{ display: 'block', marginBottom: 6, fontSize: '1rem' }}>
+                      {active ? '✓ ' : ''}{tpl.name}
+                    </strong>
+                    <span style={{ fontSize: '0.875rem', color: '#555', display: 'block', marginBottom: 6 }}>
+                      {tpl.description}
+                    </span>
+                    <span style={{ fontSize: '0.75rem', color: '#888' }}>{tpl.previewDescription}</span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
         ) : null}
 

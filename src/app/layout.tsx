@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { Sora, Playfair_Display, Inter_Tight, Instrument_Serif, JetBrains_Mono } from 'next/font/google';
+import { Sora, Playfair_Display, Inter_Tight, Instrument_Serif, JetBrains_Mono, Lato } from 'next/font/google';
 import { Suspense } from 'react';
 import { headers } from 'next/headers';
 
@@ -54,6 +54,13 @@ const fontMono = JetBrains_Mono({
   subsets: ['latin'],
   variable: '--font-mono',
   weight: ['400', '500'],
+  display: 'swap'
+});
+
+const fontLato = Lato({
+  subsets: ['latin'],
+  variable: '--font-lato',
+  weight: ['300', '400', '700'],
   display: 'swap'
 });
 
@@ -127,7 +134,7 @@ export default async function RootLayout({
   };
 
   return (
-    <html lang={settings.general.language || 'en'} className={`${fontBody.variable} ${fontAccent.variable} ${fontTight.variable} ${fontSerif.variable} ${fontMono.variable}`}>
+    <html lang={settings.general.language || 'en'} className={`${fontBody.variable} ${fontAccent.variable} ${fontTight.variable} ${fontSerif.variable} ${fontMono.variable} ${fontLato.variable}`}>
       <body className="v2-site">
         <ChunkRecoveryScript nonce={nonce} />
         <Suspense fallback={null}>
