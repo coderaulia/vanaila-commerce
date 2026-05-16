@@ -7,7 +7,6 @@ import {
   assertTrustedMutationRequest,
   readJsonWithLimit
 } from '@/services/requestSecurity';
-import { asBoolean } from '@/lib/utils';
 
 const contactSubmissionBodyLimitBytes = 16 * 1024;
 

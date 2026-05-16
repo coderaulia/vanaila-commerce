@@ -16,7 +16,7 @@ import type { StoreSettings } from '@/features/cms/types';
 
 import type { CheckoutPayload, Order, OrderItem } from './types';
 import { createOrderReceiptToken } from './orderReceipt';
-import { estimateOrderWeightGrams, quoteShippingCosts, resolveFreeShippingThreshold } from './shipping';
+import { estimateOrderWeightGrams, quoteShippingCosts } from './shipping';
 
 const nowIso = () => new Date().toISOString();
 const MAX_CHECKOUT_QUANTITY = 99;
@@ -83,7 +83,9 @@ async function resolveSelectedShipping(input: {
     throw new Error('Selected shipping service is no longer available');
   }
 
-  const freeThreshold = input.freeShippingThreshold || resolveFreeShippingThreshold();
+  const freeThreshold = input.freeShippingThreshold && input.freeShippingThreshold > 0
+    ? input.freeShippingThreshold
+    : null;
   const cost = freeThreshold && input.subtotal >= freeThreshold ? 0 : quote.cost;
   const note = [
     `Shipping: ${quote.courierName} ${quote.serviceName}`,

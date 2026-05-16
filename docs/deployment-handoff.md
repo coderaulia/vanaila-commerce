@@ -40,11 +40,18 @@ Storage quota (applies to all providers):
 
 Commerce module (optional — set `ENABLE_STORE_MODULE=true` to activate):
 - `ENABLE_STORE_MODULE` — `true` to enable the store
+- `NEXT_PUBLIC_ENABLE_STORE_MODULE` — `true` so client navigation can show store admin links
 - `MIDTRANS_SERVER_KEY` — Midtrans server key for payment processing
 - `MIDTRANS_CLIENT_KEY` — Midtrans client key for frontend Snap
 - `MIDTRANS_PRODUCTION` — `true` for production Midtrans environment
 - `RESEND_API_KEY` — Resend API key for order notification emails
 - `RESEND_FROM_EMAIL` — sender address for order emails (default: `orders@example.com`)
+- `RAJAONGKIR_API_KEY` — enables live shipping destination search and quotes
+- `RAJAONGKIR_BASE_URL` — RajaOngkir API base URL (default: `https://rajaongkir.komerce.id/api/v1`)
+- `SHIPPING_ORIGIN_ID` — RajaOngkir domestic destination ID for the shipping origin
+- `SHIPPING_COURIERS` — enabled couriers, separated by colons or commas
+- `SHIPPING_DEFAULT_WEIGHT_GRAMS` — fallback item weight when variant weight is empty
+- `LOW_STOCK_THRESHOLD` — optional admin low-stock alert threshold (default: `5`)
 
 ## Connection Strategy
 

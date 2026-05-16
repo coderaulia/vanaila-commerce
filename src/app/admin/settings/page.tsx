@@ -17,7 +17,17 @@ type SettingsResponse = { settings: SiteSettings };
 type PageResponse = { pages: LandingPage[] };
 type CategoriesResponse = { categories: Category[] };
 
-type SettingsTab = 'general' | 'navigation' | 'reading' | 'store' | 'payments' | 'media' | 'seo' | 'sitemap';
+type SettingsTab = 'general' | 'navigation' | 'reading' | 'store' | 'payments' | 'shipping' | 'media' | 'seo' | 'sitemap';
+
+type ShippingStatus = {
+  configured: boolean;
+  hasApiKey: boolean;
+  hasOriginId: boolean;
+  couriers: string[];
+  defaultWeightGrams: number;
+  freeThreshold: number | null;
+  baseUrl: string;
+};
 
 const tabs: Array<{ id: SettingsTab; label: string }> = [
   { id: 'general', label: 'General' },
@@ -25,6 +35,7 @@ const tabs: Array<{ id: SettingsTab; label: string }> = [
   { id: 'reading', label: 'Reading' },
   { id: 'store', label: 'Store' },
   { id: 'payments', label: 'Payments' },
+  { id: 'shipping', label: 'Shipping' },
   { id: 'media', label: 'Media' },
   { id: 'seo', label: 'Meta Tags' },
   { id: 'sitemap', label: 'Sitemaps' },
@@ -51,6 +62,8 @@ function SettingsEditor() {
   const [categoriesLoading, setCategoriesLoading] = useState(false);
   const [categoriesError, setCategoriesError] = useState('');
   const [revisionReloadKey, setRevisionReloadKey] = useState(0);
+  const [shippingStatus, setShippingStatus] = useState<ShippingStatus | null>(null);
+  const [shippingStatusLoading, setShippingStatusLoading] = useState(false);
 
   const loadSettings = useCallback(async () => {
     setLoading(true);
@@ -75,6 +88,17 @@ function SettingsEditor() {
     }
     void load();
   }, [activeTab, pages.length, pagesLoading, pagesError]);
+
+  useEffect(() => {
+    if (activeTab !== 'shipping' || shippingStatus || shippingStatusLoading) return;
+    async function load() {
+      setShippingStatusLoading(true);
+      const res = await csrfFetch('/api/admin/shipping/status');
+      if (res.ok) setShippingStatus((await res.json()) as ShippingStatus);
+      setShippingStatusLoading(false);
+    }
+    void load();
+  }, [activeTab, shippingStatus, shippingStatusLoading]);
 
   useEffect(() => {
     if (activeTab !== 'general' || categories.length > 0 || categoriesLoading || categoriesError) return;
@@ -576,6 +600,60 @@ function SettingsEditor() {
                 onChange={(e) => setSettings({ ...settings, payments: { ...settings.payments, paymentInstructions: e.target.value } })}
               />
               <small className="admin-subtle">Shown to customers on the order confirmation page for manual transfer orders.</small>
+            </label>
+          </div>
+        ) : null}
+
+        {/* ── Shipping ── */}
+        {activeTab === 'shipping' ? (
+          <div className="admin-grid-2">
+            {shippingStatusLoading ? (
+              <p className="admin-subtle" style={{ gridColumn: '1 / -1' }}>Loading shipping configuration...</p>
+            ) : shippingStatus ? (
+              <>
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <p className="admin-subtle" style={{ marginBottom: 8, fontWeight: 600 }}>RajaOngkir integration status</p>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    <span>
+                      {shippingStatus.hasApiKey ? '✓' : '✗'}{' '}
+                      <code>RAJAONGKIR_API_KEY</code>{' '}
+                      <span className="admin-subtle">{shippingStatus.hasApiKey ? 'configured' : 'not set — shipping quotes will be disabled'}</span>
+                    </span>
+                    <span>
+                      {shippingStatus.hasOriginId ? '✓' : '✗'}{' '}
+                      <code>SHIPPING_ORIGIN_ID</code>{' '}
+                      <span className="admin-subtle">{shippingStatus.hasOriginId ? 'configured' : 'not set — origin city required for quotes'}</span>
+                    </span>
+                  </div>
+                </div>
+                {shippingStatus.configured ? (
+                  <div style={{ gridColumn: '1 / -1' }}>
+                    <p className="admin-subtle" style={{ marginBottom: 4, fontWeight: 600 }}>Active couriers</p>
+                    <p className="admin-subtle">{shippingStatus.couriers.join(', ') || '—'}</p>
+                    <p className="admin-subtle" style={{ marginTop: 4 }}>
+                      Override via <code>SHIPPING_COURIERS</code> env var (colon-separated, e.g. <code>jne:sicepat:anteraja</code>).
+                    </p>
+                  </div>
+                ) : null}
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <p className="admin-subtle" style={{ marginBottom: 4, fontWeight: 600 }}>Other env vars</p>
+                  <p className="admin-subtle">
+                    <code>SHIPPING_DEFAULT_WEIGHT_GRAMS</code> — fallback weight per item when product weight is unset (current: {shippingStatus.defaultWeightGrams}g)
+                  </p>
+                  <p className="admin-subtle" style={{ marginTop: 4 }}>
+                    <code>RAJAONGKIR_BASE_URL</code> — API base URL (current: {shippingStatus.baseUrl})
+                  </p>
+                </div>
+              </>
+            ) : null}
+            <label>
+              Free shipping threshold ({settings?.store.currencySymbol || 'Rp'})
+              <input
+                type="number" min={0}
+                value={settings!.store.freeShippingThreshold}
+                onChange={(e) => setSettings({ ...settings!, store: { ...settings!.store, freeShippingThreshold: Number(e.target.value) } })}
+              />
+              <small className="admin-subtle">Orders at or above this amount qualify for free shipping. Set 0 to disable.</small>
             </label>
           </div>
         ) : null}

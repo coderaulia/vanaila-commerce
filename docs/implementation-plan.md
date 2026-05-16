@@ -46,51 +46,28 @@ Last updated: 2026-05-16
 | Orders CSV export | Done — `GET /api/admin/orders/export` |
 | CMS Settings — Store tab (location, currency, thresholds) | Done |
 | CMS Settings — Payments tab (Midtrans toggle, bank details) | Done |
+| Checkout payment settings enforcement | Done — disabled CMS payment methods are rejected server-side and hidden client-side |
+| Checkout store settings enforcement | Done — minimum order is enforced and free-shipping threshold is applied to quotes/final totals |
+| Checkout shipping fallback | Done — RajaOngkir quote flow is used only when configured; manual city/province/postal checkout remains available |
+| Order confirmation transfer details | Done — bank details and instructions come from CMS payment settings |
+| Low-stock alerts | Done — `GET /api/admin/products/low-stock` and products-page warning banner |
+| Deployment env docs | Done — README, env examples, and deployment handoff list store/payment/shipping vars |
+| Public shop navigation | Done — default CMS content and local content include `/shop` header/footer links |
 
 ---
 
 ## Active Priorities
 
-### P-1 — Wire CMS payment settings to checkout (Critical gap)
+No code priorities remain from this plan.
 
-**Problem:** `PaymentSettings.midtransEnabled` and `manualTransferEnabled` stored in CMS but checkout flow ignores them. Users can submit any payment method regardless of what admin configured. Bank transfer details from settings not shown on order confirmation.
+### Deployment Checklist
 
-**Scope:**
-- `src/app/api/store/checkout/route.ts` — read settings, reject disabled payment methods
-- `src/features/commerce/checkout.ts` — pass bank details into order / email
-- `src/app/shop/order/[id]/page.tsx` — show bank name/account/instructions from settings (not hardcoded)
-- `src/app/checkout/page.tsx` — only show enabled payment method options
-
-### P-2 — Wire store settings to checkout validation
-
-**Problem:** `minOrderAmount` and `freeShippingThreshold` in CMS settings do nothing.
-
-**Scope:**
-- `src/app/api/store/checkout/route.ts` — enforce min order; apply free shipping when threshold met
-- `src/app/checkout/page.tsx` — show free shipping badge when cart qualifies
-
-### P-3 — Commit unstaged checkout/cart refactor
-
-Unstaged: `checkout.ts`, `checkout/route.ts`, `cartStore.ts`, `cart/page.tsx`, `checkout/page.tsx`, `ProductDetail.tsx`, `ShopHero.tsx`, `orderEmail.ts`, `CartPageClient.tsx`, `CheckoutPageClient.tsx`.
-
-Review and commit before P-1/P-2 to avoid conflicts.
-
-### P-4 — Inventory low-stock alerts
-
-**Scope:**
-- `GET /api/admin/products/low-stock` — variants where `stock <= threshold` (default 5)
-- Dashboard widget or products page badge showing low-stock count
-- Optional: `LOW_STOCK_THRESHOLD` env var
-
-### P-5 — Deployment prep
-
-- [ ] `npm run db:generate` → create migration files
-- [ ] `npm run db:migrate` → apply schema
-- [ ] Set env vars in production (`ENABLE_STORE_MODULE`, `NEXT_PUBLIC_ENABLE_STORE_MODULE`, Midtrans keys, Resend key)
-- [ ] Test Midtrans sandbox flow end-to-end
-- [ ] Test manual transfer flow end-to-end
-- [ ] Verify Resend email delivery
-- [ ] Add shop link to site navigation
+- [x] `npm run db:generate` checked migration state. Drizzle only proposed a destructive legacy contact/portfolio table drop migration, so the local generated artifact was removed; review schema history before keeping or applying that migration in production.
+- [ ] `npm run db:migrate` still needs a reachable PostgreSQL database. Local run exited non-zero while applying migrations, and Docker access was unavailable in this session.
+- [ ] Set production env vars: `ENABLE_STORE_MODULE`, `NEXT_PUBLIC_ENABLE_STORE_MODULE`, `ORDER_RECEIPT_SECRET`, Midtrans keys, Resend key, and optional RajaOngkir shipping vars.
+- [ ] Test Midtrans sandbox flow end-to-end with real sandbox credentials.
+- [ ] Test manual transfer flow end-to-end with CMS payment settings populated.
+- [ ] Verify Resend email delivery with a real sender/domain.
 
 ---
 
@@ -98,6 +75,4 @@ Review and commit before P-1/P-2 to avoid conflicts.
 
 | Item | Effort |
 |------|--------|
-| Shipping cost calculation integration | M |
-| Inventory low-stock alerts | S |
 | Product reviews/ratings | L |

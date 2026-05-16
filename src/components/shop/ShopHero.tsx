@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { addToCart } from '@/features/commerce/cartStore';
 import type { Product } from '@/features/commerce/types';

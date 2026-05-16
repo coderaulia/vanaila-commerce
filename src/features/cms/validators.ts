@@ -113,13 +113,6 @@ const asCtaStyle = (value: unknown, fallback: CtaStyleToken = 'primary'): CtaSty
   return isCtaStyle(token) ? token : fallback;
 };
 
-const asStringArray = (value: unknown): string[] => {
-  if (!Array.isArray(value)) return [];
-  return value
-    .map((entry) => asString(entry).trim())
-    .filter((entry) => entry.length > 0);
-};
-
 function parseHomeBlock(input: unknown, index: number): HomeBlock | null {
   if (!isObject(input)) return null;
   const type = asString(input.type);

@@ -4,6 +4,7 @@ import { modules } from '@/config/modules';
 import { processCheckout } from '@/features/commerce/checkout';
 import { sendOrderConfirmationEmail } from '@/features/commerce/orderEmail';
 import { getSettings } from '@/features/cms/contentStore';
+import { env } from '@/services/env';
 import { assertRateLimit } from '@/services/requestSecurity';
 import type { CheckoutPayload } from '@/features/commerce/types';
 
@@ -137,6 +138,9 @@ export async function POST(request: Request) {
 
   if (!body.customer.name || !body.customer.phone || !body.customer.address) {
     return NextResponse.json({ error: 'Missing required customer fields' }, { status: 400 });
+  }
+  if (env.rajaOngkirApiKey && env.shippingOriginId && !body.shipping) {
+    return NextResponse.json({ error: 'Please select a shipping method' }, { status: 400 });
   }
 
   try {

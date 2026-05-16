@@ -46,10 +46,6 @@ function extractErrorCode(error: unknown): string | undefined {
   return undefined;
 }
 
-function isMissingRelationError(error: unknown) {
-  return extractErrorCode(error) === '42P01';
-}
-
 function isMissingColumnError(error: unknown) {
   return extractErrorCode(error) === '42703';
 }
@@ -662,4 +658,3 @@ export async function setPostStatus(id: string, status: 'draft' | 'published'): 
   await getDb().update(blogPostsTable).set(postToRow(next)).where(eq(blogPostsTable.id, id));
   return next;
 }
-

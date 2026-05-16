@@ -76,8 +76,6 @@ type HrefAvailability = {
   partnership: boolean;
 };
 
-const serviceDetailPages: string[] = [];
-
 const serviceLinks = [
   { href: '/website-development', label: 'Website Development' },
   { href: '/secure-online-shops', label: 'Secure Online Shops' },

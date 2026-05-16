@@ -3,11 +3,11 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, CreditCard, LockKeyhole, ShoppingBag } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
 
 import { clearCart, setCouponCode as persistCouponCode, useCart } from '@/features/commerce/cartStore';
-import type { PaymentMethod } from '@/features/commerce/types';
+import type { PaymentMethod, ShippingDestination, ShippingQuote } from '@/features/commerce/types';
 
 type CheckoutForm = {
   name: string;
@@ -18,6 +18,15 @@ type CheckoutForm = {
   province: string;
   postalCode: string;
   notes: string;
+};
+
+type QuotesResponse = {
+  quotes: ShippingQuote[];
+  meta?: { configured: boolean; freeShippingApplied?: boolean };
+};
+
+type DestinationsResponse = {
+  destinations: ShippingDestination[];
 };
 
 type CheckoutResponse = {
@@ -47,9 +56,16 @@ type CheckoutPageClientProps = {
   manualTransferEnabled: boolean;
   freeShippingThreshold: number;
   minOrderAmount: number;
+  shippingQuotesEnabled: boolean;
 };
 
-export function CheckoutPageClient({ midtransEnabled, manualTransferEnabled, freeShippingThreshold, minOrderAmount }: CheckoutPageClientProps) {
+export function CheckoutPageClient({
+  midtransEnabled,
+  manualTransferEnabled,
+  freeShippingThreshold,
+  minOrderAmount,
+  shippingQuotesEnabled
+}: CheckoutPageClientProps) {
   const [mounted, setMounted] = useState(false);
   const [form, setForm] = useState<CheckoutForm>(initialForm);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(() =>
@@ -58,8 +74,22 @@ export function CheckoutPageClient({ midtransEnabled, manualTransferEnabled, fre
   const [couponCode, setCouponCodeInput] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [destinationQuery, setDestinationQuery] = useState('');
+  const [destinationResults, setDestinationResults] = useState<ShippingDestination[]>([]);
+  const [destinationLoading, setDestinationLoading] = useState(false);
+  const [showDestinationDropdown, setShowDestinationDropdown] = useState(false);
+  const [selectedDestination, setSelectedDestination] = useState<ShippingDestination | null>(null);
+  const [shippingQuotes, setShippingQuotes] = useState<ShippingQuote[]>([]);
+  const [quotesLoading, setQuotesLoading] = useState(false);
+  const [quotesConfigured, setQuotesConfigured] = useState(true);
+  const [selectedQuote, setSelectedQuote] = useState<ShippingQuote | null>(null);
   const cart = useCart();
   const router = useRouter();
+  const hasPaymentMethod = midtransEnabled || manualTransferEnabled;
+  const cartQuoteItemsKey = useMemo(
+    () => cart.items.map((item) => `${item.variantId}:${item.quantity}`).sort().join('|'),
+    [cart.items]
+  );
 
   useEffect(() => {
     setMounted(true);
@@ -69,11 +99,57 @@ export function CheckoutPageClient({ midtransEnabled, manualTransferEnabled, fre
     setCouponCodeInput(cart.couponCode ?? '');
   }, [cart.couponCode]);
 
+  useEffect(() => {
+    if (!shippingQuotesEnabled) return;
+    if (destinationQuery.length < 3) {
+      setDestinationResults([]);
+      return;
+    }
+    setDestinationLoading(true);
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/store/shipping/destinations?q=${encodeURIComponent(destinationQuery)}`);
+        if (res.ok) {
+          const data = (await res.json()) as DestinationsResponse;
+          setDestinationResults(data.destinations ?? []);
+        }
+      } finally {
+        setDestinationLoading(false);
+      }
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [destinationQuery, shippingQuotesEnabled]);
+
+  useEffect(() => {
+    if (!shippingQuotesEnabled) return;
+    if (!selectedDestination || cart.items.length === 0) return;
+    setQuotesLoading(true);
+    setShippingQuotes([]);
+    setSelectedQuote(null);
+    const variantIds = cart.items.map((item) => ({ variantId: item.variantId, quantity: item.quantity }));
+    fetch('/api/store/shipping/quotes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ destinationId: selectedDestination.id, items: variantIds })
+    })
+      .then(async (res) => {
+        if (!res.ok) return;
+        const data = (await res.json()) as QuotesResponse;
+        setQuotesConfigured(data.meta?.configured !== false);
+        setShippingQuotes(data.quotes ?? []);
+        if (data.quotes?.length === 1) setSelectedQuote(data.quotes[0]);
+      })
+      .finally(() => setQuotesLoading(false));
+  }, [selectedDestination, cart.items, cartQuoteItemsKey, shippingQuotesEnabled]);
+
   const subtotal = cart.items.reduce(
     (sum, item) => sum + (item.variant?.price ?? 0) * item.quantity,
     0
   );
   const hasCompletePricing = cart.items.every((item) => item.variant);
+  const isBelowMinimumOrder = minOrderAmount > 0 && hasCompletePricing && subtotal < minOrderAmount;
+  const requiresShippingQuote = shippingQuotesEnabled && selectedDestination !== null;
+  const isMissingShippingQuote = requiresShippingQuote && !selectedQuote;
 
   const updateField = (field: keyof CheckoutForm, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -84,9 +160,34 @@ export function CheckoutPageClient({ midtransEnabled, manualTransferEnabled, fre
     persistCouponCode(value.trim() || null);
   };
 
+  const selectDestination = (dest: ShippingDestination) => {
+    setSelectedDestination(dest);
+    setDestinationQuery(dest.label);
+    setShowDestinationDropdown(false);
+    setDestinationResults([]);
+    setForm((prev) => ({
+      ...prev,
+      city: dest.city,
+      province: dest.province,
+      postalCode: dest.postalCode
+    }));
+  };
+
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (cart.items.length === 0) return;
+    if (!hasPaymentMethod) {
+      setError('No payment method is currently available. Please contact the store.');
+      return;
+    }
+    if (isBelowMinimumOrder) {
+      setError(`Minimum order is ${formatCurrency(minOrderAmount)}.`);
+      return;
+    }
+    if (isMissingShippingQuote) {
+      setError('Please select a shipping method.');
+      return;
+    }
 
     setSubmitting(true);
     setError('');
@@ -103,7 +204,17 @@ export function CheckoutPageClient({ midtransEnabled, manualTransferEnabled, fre
           customer: form,
           paymentMethod,
           couponCode: couponCode.trim() || undefined,
-          notes: form.notes.trim() || undefined
+          notes: form.notes.trim() || undefined,
+          shipping: selectedQuote && selectedDestination ? {
+            destinationId: selectedDestination.id,
+            destinationLabel: selectedDestination.label,
+            courierCode: selectedQuote.courierCode,
+            serviceCode: selectedQuote.serviceCode,
+            serviceName: selectedQuote.serviceName,
+            cost: selectedQuote.cost,
+            etd: selectedQuote.etd,
+            provider: selectedQuote.provider
+          } : undefined
         })
       });
 
@@ -233,39 +344,93 @@ export function CheckoutPageClient({ midtransEnabled, manualTransferEnabled, fre
                   className="mt-2 h-11 w-full border border-gray-200 px-3 text-sm text-gray-950 outline-none transition-colors focus:border-black"
                 />
               </label>
-              <label className="block text-sm font-medium text-gray-700">
-                City
-                <input
-                  type="text"
-                  required
-                  autoComplete="address-level2"
-                  value={form.city}
-                  onChange={(event) => updateField('city', event.target.value)}
-                  className="mt-2 h-11 w-full border border-gray-200 px-3 text-sm text-gray-950 outline-none transition-colors focus:border-black"
-                />
-              </label>
-              <label className="block text-sm font-medium text-gray-700">
-                Province
-                <input
-                  type="text"
-                  required
-                  autoComplete="address-level1"
-                  value={form.province}
-                  onChange={(event) => updateField('province', event.target.value)}
-                  className="mt-2 h-11 w-full border border-gray-200 px-3 text-sm text-gray-950 outline-none transition-colors focus:border-black"
-                />
-              </label>
-              <label className="block text-sm font-medium text-gray-700">
-                Postal code
-                <input
-                  type="text"
-                  required
-                  autoComplete="postal-code"
-                  value={form.postalCode}
-                  onChange={(event) => updateField('postalCode', event.target.value)}
-                  className="mt-2 h-11 w-full border border-gray-200 px-3 text-sm text-gray-950 outline-none transition-colors focus:border-black"
-                />
-              </label>
+              {shippingQuotesEnabled ? (
+                <div className="sm:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700">
+                    Destination (city / area)
+                    <div className="relative mt-2">
+                      <input
+                        type="text"
+                        required={!selectedDestination}
+                        placeholder="Search by city or area name..."
+                        value={destinationQuery}
+                        onChange={(event) => {
+                          setDestinationQuery(event.target.value);
+                          setShowDestinationDropdown(true);
+                          if (!event.target.value) {
+                            setSelectedDestination(null);
+                            setShippingQuotes([]);
+                            setSelectedQuote(null);
+                            setForm((prev) => ({ ...prev, city: '', province: '', postalCode: '' }));
+                          }
+                        }}
+                        onFocus={() => destinationResults.length > 0 && setShowDestinationDropdown(true)}
+                        onBlur={() => setTimeout(() => setShowDestinationDropdown(false), 200)}
+                        className="h-11 w-full border border-gray-200 px-3 text-sm text-gray-950 outline-none transition-colors focus:border-black"
+                      />
+                      {destinationLoading && (
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">Searching...</span>
+                      )}
+                      {showDestinationDropdown && destinationResults.length > 0 && (
+                        <ul className="absolute z-20 mt-1 max-h-60 w-full overflow-auto border border-gray-200 bg-white shadow-md">
+                          {destinationResults.map((dest) => (
+                            <li key={dest.id}>
+                              <button
+                                type="button"
+                                onMouseDown={() => selectDestination(dest)}
+                                className="w-full px-3 py-2.5 text-left text-sm text-gray-950 hover:bg-gray-50"
+                              >
+                                {dest.label}
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  </label>
+                  {selectedDestination && (
+                    <p className="mt-1.5 text-xs text-gray-500">
+                      {selectedDestination.city}, {selectedDestination.province} {selectedDestination.postalCode}
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <>
+                  <label className="block text-sm font-medium text-gray-700">
+                    City
+                    <input
+                      type="text"
+                      required
+                      autoComplete="address-level2"
+                      value={form.city}
+                      onChange={(event) => updateField('city', event.target.value)}
+                      className="mt-2 h-11 w-full border border-gray-200 px-3 text-sm text-gray-950 outline-none transition-colors focus:border-black"
+                    />
+                  </label>
+                  <label className="block text-sm font-medium text-gray-700">
+                    Province
+                    <input
+                      type="text"
+                      required
+                      autoComplete="address-level1"
+                      value={form.province}
+                      onChange={(event) => updateField('province', event.target.value)}
+                      className="mt-2 h-11 w-full border border-gray-200 px-3 text-sm text-gray-950 outline-none transition-colors focus:border-black"
+                    />
+                  </label>
+                  <label className="block text-sm font-medium text-gray-700">
+                    Postal code
+                    <input
+                      type="text"
+                      required
+                      autoComplete="postal-code"
+                      value={form.postalCode}
+                      onChange={(event) => updateField('postalCode', event.target.value)}
+                      className="mt-2 h-11 w-full border border-gray-200 px-3 text-sm text-gray-950 outline-none transition-colors focus:border-black"
+                    />
+                  </label>
+                </>
+              )}
               <label className="block text-sm font-medium text-gray-700 sm:col-span-2">
                 Address
                 <textarea
@@ -289,9 +454,55 @@ export function CheckoutPageClient({ midtransEnabled, manualTransferEnabled, fre
             </div>
           </section>
 
+          {shippingQuotesEnabled && selectedDestination && quotesConfigured && (
+            <section className="border border-gray-100 p-5 sm:p-6">
+              <h2 className="text-sm font-bold uppercase tracking-wide text-gray-950">Shipping method</h2>
+              {quotesLoading ? (
+                <p className="mt-4 text-sm text-gray-400">Loading shipping options...</p>
+              ) : shippingQuotes.length > 0 ? (
+                <div className="mt-4 space-y-2">
+                  {shippingQuotes.map((quote) => (
+                    <label
+                      key={quote.id}
+                      className={`flex cursor-pointer items-start gap-3 border p-3 transition-colors ${
+                        selectedQuote?.id === quote.id ? 'border-black' : 'border-gray-200 hover:border-gray-400'
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="shippingQuote"
+                        value={quote.id}
+                        checked={selectedQuote?.id === quote.id}
+                        onChange={() => setSelectedQuote(quote)}
+                        className="mt-0.5 shrink-0"
+                      />
+                      <span className="flex-1 min-w-0">
+                        <span className="block text-sm font-semibold text-gray-950">
+                          {quote.courierName.toUpperCase()} {quote.serviceName}
+                          {quote.description ? ` — ${quote.description}` : ''}
+                        </span>
+                        <span className="mt-0.5 block text-xs text-gray-500">
+                          {quote.etd ? `Est. ${quote.etd} days · ` : ''}
+                          {quote.cost === 0 ? <span className="text-green-700 font-medium">Free</span> : formatCurrency(quote.cost)}
+                        </span>
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              ) : (
+                <p className="mt-4 text-sm text-gray-500">No shipping options available for this destination.</p>
+              )}
+            </section>
+          )}
+
           <section className="border border-gray-100 p-5 sm:p-6">
             <h2 className="text-sm font-bold uppercase tracking-wide text-gray-950">Payment</h2>
             <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
+              {!hasPaymentMethod && (
+                <p role="alert" className="border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700 sm:col-span-2">
+                  No payment method is currently available.
+                </p>
+              )}
               {manualTransferEnabled && (
                 <label
                   className={`flex min-h-24 cursor-pointer gap-3 border p-4 transition-colors ${
@@ -355,7 +566,7 @@ export function CheckoutPageClient({ midtransEnabled, manualTransferEnabled, fre
 
           <button
             type="submit"
-            disabled={submitting}
+            disabled={submitting || !hasPaymentMethod || isBelowMinimumOrder || isMissingShippingQuote}
             className="flex h-12 w-full items-center justify-center gap-2 bg-black px-6 text-sm font-semibold uppercase tracking-wide text-white transition-opacity hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-50"
           >
             <LockKeyhole aria-hidden="true" className="h-4 w-4" />
@@ -406,7 +617,7 @@ export function CheckoutPageClient({ midtransEnabled, manualTransferEnabled, fre
                   {hasCompletePricing ? formatCurrency(subtotal) : 'Calculated at checkout'}
                 </dd>
               </div>
-              {minOrderAmount > 0 && hasCompletePricing && subtotal < minOrderAmount && (
+              {isBelowMinimumOrder && (
                 <p role="alert" className="text-xs text-red-600">
                   Minimum order is {formatCurrency(minOrderAmount)}.
                 </p>
@@ -414,15 +625,31 @@ export function CheckoutPageClient({ midtransEnabled, manualTransferEnabled, fre
               <div className="flex justify-between gap-4">
                 <dt className="text-gray-500">Shipping</dt>
                 <dd className="font-semibold text-gray-950">
-                  {freeShippingThreshold > 0 && hasCompletePricing && subtotal >= freeShippingThreshold
-                    ? <span className="text-green-700">Free</span>
-                    : 'Calculated at checkout'}
+                  {selectedQuote
+                    ? selectedQuote.cost === 0
+                      ? <span className="text-green-700">Free</span>
+                      : formatCurrency(selectedQuote.cost)
+                    : !shippingQuotesEnabled && freeShippingThreshold > 0 && hasCompletePricing && subtotal >= freeShippingThreshold
+                      ? <span className="text-green-700">Free</span>
+                      : shippingQuotesEnabled
+                        ? 'Select destination'
+                        : 'Calculated after order'}
                 </dd>
               </div>
-              {freeShippingThreshold > 0 && hasCompletePricing && subtotal < freeShippingThreshold && (
+              {selectedQuote && selectedQuote.etd ? (
+                <p className="text-xs text-gray-500">Est. {selectedQuote.etd} working days</p>
+              ) : freeShippingThreshold > 0 && hasCompletePricing && subtotal < freeShippingThreshold ? (
                 <p className="text-xs text-gray-500">
                   Add {formatCurrency(freeShippingThreshold - subtotal)} more for free shipping.
                 </p>
+              ) : null}
+              {hasCompletePricing && (selectedQuote !== null || !shippingQuotesEnabled) && (
+                <div className="flex justify-between gap-4 border-t border-gray-100 pt-4 text-base">
+                  <dt className="font-bold text-gray-950">Total</dt>
+                  <dd className="font-bold text-gray-950">
+                    {formatCurrency(subtotal + (selectedQuote?.cost ?? 0))}
+                  </dd>
+                </div>
               )}
             </dl>
           </div>

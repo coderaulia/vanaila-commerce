@@ -124,6 +124,7 @@ Enable it:
 
 ```bash
 ENABLE_STORE_MODULE=true
+NEXT_PUBLIC_ENABLE_STORE_MODULE=true
 ```
 
 After enabling, generate and apply the new tables:
@@ -146,6 +147,16 @@ For order notification emails, configure Resend:
 ```bash
 RESEND_API_KEY=your-api-key
 RESEND_FROM_EMAIL=orders@yourdomain.com
+```
+
+For live Indonesian shipping quotes, configure RajaOngkir. If these are left empty, checkout falls back to manual city/province/postal-code entry.
+
+```bash
+RAJAONGKIR_API_KEY=your-api-key
+RAJAONGKIR_BASE_URL=https://rajaongkir.komerce.id/api/v1
+SHIPPING_ORIGIN_ID=your-origin-destination-id
+SHIPPING_COURIERS=jne:sicepat:anteraja:jnt:pos:tiki
+SHIPPING_DEFAULT_WEIGHT_GRAMS=1000
 ```
 
 Public routes: `/shop`, `/shop/[slug]`, `/cart`, `/checkout`  
