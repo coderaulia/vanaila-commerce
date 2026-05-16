@@ -26,7 +26,7 @@ export default async function ShopProductPage({ params }: Props) {
   if (!product || product.status !== 'active') notFound();
 
   return (
-    <main className="shop-product-page">
+    <main>
       <ProductDetail product={product} />
     </main>
   );

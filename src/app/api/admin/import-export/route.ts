@@ -13,7 +13,7 @@ import {
 } from '@/features/cms/adminAuth';
 import { revalidatePublicCmsCache } from '@/features/cms/publicCache';
 
-const collections: CmsImportCollection[] = ['pages', 'blogPosts', 'portfolioProjects', 'settings', 'fullSite'];
+const collections: CmsImportCollection[] = ['pages', 'blogPosts', 'settings', 'fullSite'];
 
 function parseCollection(value: string | null): CmsImportCollection | null {
   if (!value) return null;

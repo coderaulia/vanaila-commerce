@@ -6,9 +6,6 @@ import {
   categoriesTable,
   mediaAssetsTable,
   pagesTable,
-  portfolioProjectTagsTable,
-  portfolioProjectsTable,
-  portfolioTagsTable,
   postCategoriesTable,
   siteSettingsTable
 } from '@/db/schema';
@@ -16,40 +13,29 @@ import {
 import { defaultContent } from './defaultContent';
 import {
   deleteBlogPostCategoryLinks,
-  deletePortfolioProjectTagLinks,
   mapBlogPostCategorySlugs,
-  mapPortfolioProjectTags,
-  syncBlogPostCategoryLinks,
-  syncPortfolioProjectTagLinks
+  syncBlogPostCategoryLinks
 } from './dbTaxonomy';
 import type {
   BlogPost,
   CmsContent,
   LandingPage,
   PageId,
-  PortfolioProject,
   SiteSettings
 } from './types';
-import type { BlogQueryInput, PortfolioQueryInput } from './storeTypes';
-import {
-  isBlogPostLive,
-  isPortfolioProjectLive
-} from './publicationState';
+import type { BlogQueryInput } from './storeTypes';
+import { isBlogPostLive } from './publicationState';
 import {
   mergeWithDefaults,
   normalizePageForWrite,
   normalizeSettings,
   normalizeSlug,
   nowIso,
-  uniquePortfolioSlug,
   uniquePostSlug
 } from './storeShared';
 
 let bootstrapPromise: Promise<void> | null = null;
-let warnedMissingPortfolioTable = false;
 let warnedMissingScheduleColumns = false;
-let warnedMissingPortfolioRelationsColumn = false;
-let portfolioRelationsColumnPromise: Promise<boolean> | null = null;
 let warnedSkippedBuildBootstrap = false;
 
 function extractErrorCode(error: unknown): string | undefined {
@@ -68,23 +54,10 @@ function isMissingColumnError(error: unknown) {
   return extractErrorCode(error) === '42703';
 }
 
-function warnMissingPortfolioTable() {
-  if (warnedMissingPortfolioTable) return;
-  warnedMissingPortfolioTable = true;
-  // Keep build/runtime resilient while migration is rolling out.
-  console.warn('portfolio_projects table not found; portfolio features are temporarily disabled.');
-}
-
 function warnMissingScheduleColumns() {
   if (warnedMissingScheduleColumns) return;
   warnedMissingScheduleColumns = true;
   console.warn('Scheduled publish columns are not available yet; falling back to legacy content queries.');
-}
-
-function warnMissingPortfolioRelationsColumn() {
-  if (warnedMissingPortfolioRelationsColumn) return;
-  warnedMissingPortfolioRelationsColumn = true;
-  console.warn('related_service_page_ids column is not available yet; falling back to legacy portfolio queries.');
 }
 
 function isBuildPhase() {
@@ -100,37 +73,12 @@ function warnSkippedBuildBootstrap() {
   console.warn('Skipping CMS database bootstrap during build; build should not mutate production content.');
 }
 
-async function withPortfolioTableFallback<T>(task: () => Promise<T>, fallback: T): Promise<T> {
-  try {
-    return await task();
-  } catch (error) {
-    if (isMissingRelationError(error)) {
-      warnMissingPortfolioTable();
-      return fallback;
-    }
-    throw error;
-  }
-}
-
 async function withLegacyScheduleFallback<T>(task: () => Promise<T>, fallbackTask: () => Promise<T>): Promise<T> {
   try {
     return await task();
   } catch (error) {
     if (isMissingColumnError(error)) {
       warnMissingScheduleColumns();
-      return fallbackTask();
-    }
-    throw error;
-  }
-}
-
-async function withPortfolioRelationsFallback<T>(task: () => Promise<T>, fallbackTask: () => Promise<T>): Promise<T> {
-  try {
-    return await task();
-  } catch (error) {
-    if (isMissingColumnError(error)) {
-      portfolioRelationsColumnPromise = Promise.resolve(false);
-      warnMissingPortfolioRelationsColumn();
       return fallbackTask();
     }
     throw error;
@@ -162,30 +110,6 @@ type LegacyPostRow = {
   publishedAt: string | null;
   updatedAt: string;
   seo: BlogPost['seo'];
-};
-
-type LegacyPortfolioRow = {
-  id: string;
-  title: string;
-  slug: string;
-  summary: string;
-  challenge: string;
-  solution: string;
-  outcome: string;
-  clientName: string;
-  serviceType: string;
-  industry: string;
-  projectUrl: string;
-  relatedServicePageIds?: PortfolioProject['relatedServicePageIds'];
-  coverImage: string;
-  gallery: string[];
-  tags: string[];
-  featured: boolean;
-  status: PortfolioProject['status'];
-  sortOrder: number;
-  publishedAt: string | null;
-  updatedAt: string;
-  seo: PortfolioProject['seo'];
 };
 
 function pageToLegacyRow(page: LandingPage) {
@@ -259,61 +183,6 @@ function rowToLegacyPost(row: LegacyPostRow, tags = row.tags): BlogPost {
   };
 }
 
-function portfolioToLegacyRow(project: PortfolioProject) {
-  return {
-    id: project.id,
-    title: project.title,
-    slug: project.seo.slug,
-    summary: project.summary,
-    challenge: project.challenge,
-    solution: project.solution,
-    outcome: project.outcome,
-    clientName: project.clientName,
-    serviceType: project.serviceType,
-    industry: project.industry,
-    projectUrl: project.projectUrl,
-    coverImage: project.coverImage,
-    gallery: project.gallery,
-    tags: project.tags,
-    featured: project.featured,
-    status: project.status,
-    sortOrder: project.sortOrder,
-    publishedAt: project.publishedAt,
-    updatedAt: project.updatedAt,
-    seo: project.seo
-  };
-}
-
-function rowToLegacyPortfolio(row: LegacyPortfolioRow, tags = row.tags): PortfolioProject {
-  return {
-    id: row.id,
-    title: row.title,
-    summary: row.summary,
-    challenge: row.challenge,
-    solution: row.solution,
-    outcome: row.outcome,
-    clientName: row.clientName,
-    serviceType: row.serviceType,
-    industry: row.industry,
-    projectUrl: row.projectUrl,
-    relatedServicePageIds: Array.isArray(row.relatedServicePageIds) ? row.relatedServicePageIds : [],
-    coverImage: row.coverImage,
-    gallery: row.gallery,
-    tags,
-    featured: row.featured,
-    status: row.status,
-    sortOrder: row.sortOrder,
-    publishedAt: row.publishedAt,
-    scheduledPublishAt: null,
-    scheduledUnpublishAt: null,
-    updatedAt: row.updatedAt,
-    seo: {
-      ...row.seo,
-      slug: row.slug
-    }
-  };
-}
-
 async function readLegacyPages() {
   const result = await getDb().execute<LegacyPageRow>(sql`
     select id, title, nav_label as "navLabel", slug, published, seo, sections, home_blocks as "homeBlocks", updated_at as "updatedAt"
@@ -329,19 +198,6 @@ async function readLegacyPosts() {
   `);
   const tagMap = await mapBlogPostCategorySlugs(result.rows.map((row) => row.id));
   return result.rows.map((row) => rowToLegacyPost(row, tagMap.get(row.id) ?? row.tags));
-}
-
-async function readLegacyPortfolioProjects() {
-  return withPortfolioTableFallback(async () => {
-    const result = await getDb().execute<LegacyPortfolioRow>(sql`
-      select id, title, slug, summary, challenge, solution, outcome, client_name as "clientName", service_type as "serviceType",
-        industry, project_url as "projectUrl", cover_image as "coverImage", gallery, tags, featured, status, sort_order as "sortOrder",
-        published_at as "publishedAt", updated_at as "updatedAt", seo
-      from portfolio_projects
-    `);
-    const tagMap = await mapPortfolioProjectTags(result.rows.map((row) => row.id));
-    return result.rows.map((row) => rowToLegacyPortfolio(row, tagMap.get(row.id) ?? row.tags));
-  }, []);
 }
 
 function pageToRow(page: LandingPage) {
@@ -419,127 +275,6 @@ function rowToPost(row: typeof blogPostsTable.$inferSelect, tags = row.tags): Bl
   };
 }
 
-function portfolioToRow(project: PortfolioProject) {
-  return {
-    id: project.id,
-    title: project.title,
-    slug: project.seo.slug,
-    summary: project.summary,
-    challenge: project.challenge,
-    solution: project.solution,
-    outcome: project.outcome,
-    clientName: project.clientName,
-    serviceType: project.serviceType,
-    industry: project.industry,
-    projectUrl: project.projectUrl,
-    coverImage: project.coverImage,
-    gallery: project.gallery,
-    tags: project.tags,
-    featured: project.featured,
-    status: project.status,
-    sortOrder: project.sortOrder,
-    publishedAt: project.publishedAt,
-    scheduledPublishAt: project.scheduledPublishAt ?? null,
-    scheduledUnpublishAt: project.scheduledUnpublishAt ?? null,
-    updatedAt: project.updatedAt,
-    seo: project.seo
-  };
-}
-
-type PortfolioInsertRow = typeof portfolioProjectsTable.$inferInsert;
-type PortfolioRowShape = ReturnType<typeof portfolioToLegacyRow> & {
-  relatedServicePageIds?: PortfolioProject['relatedServicePageIds'];
-  scheduledPublishAt?: string | null;
-  scheduledUnpublishAt?: string | null;
-};
-
-function portfolioWriteRow(project: PortfolioProject, includeRelations: boolean): PortfolioInsertRow {
-  return (includeRelations ? portfolioToRow(project) : portfolioToLegacyRow(project)) as PortfolioInsertRow;
-}
-
-function portfolioSelectShape(includeRelations: boolean, includeSchedule = true) {
-  return {
-    id: portfolioProjectsTable.id,
-    title: portfolioProjectsTable.title,
-    slug: portfolioProjectsTable.slug,
-    summary: portfolioProjectsTable.summary,
-    challenge: portfolioProjectsTable.challenge,
-    solution: portfolioProjectsTable.solution,
-    outcome: portfolioProjectsTable.outcome,
-    clientName: portfolioProjectsTable.clientName,
-    serviceType: portfolioProjectsTable.serviceType,
-    industry: portfolioProjectsTable.industry,
-    projectUrl: portfolioProjectsTable.projectUrl,
-    ...(includeRelations ? { relatedServicePageIds: portfolioProjectsTable.relatedServicePageIds } : {}),
-    coverImage: portfolioProjectsTable.coverImage,
-    gallery: portfolioProjectsTable.gallery,
-    tags: portfolioProjectsTable.tags,
-    featured: portfolioProjectsTable.featured,
-    status: portfolioProjectsTable.status,
-    sortOrder: portfolioProjectsTable.sortOrder,
-    publishedAt: portfolioProjectsTable.publishedAt,
-    ...(includeSchedule ? {
-      scheduledPublishAt: portfolioProjectsTable.scheduledPublishAt,
-      scheduledUnpublishAt: portfolioProjectsTable.scheduledUnpublishAt,
-    } : {}),
-    updatedAt: portfolioProjectsTable.updatedAt,
-    seo: portfolioProjectsTable.seo
-  };
-}
-
-function rowToPortfolio(
-  row: PortfolioRowShape,
-  tags = row.tags
-): PortfolioProject {
-  return {
-    id: row.id,
-    title: row.title,
-    summary: row.summary,
-    challenge: row.challenge,
-    solution: row.solution,
-    outcome: row.outcome,
-    clientName: row.clientName,
-    serviceType: row.serviceType,
-    industry: row.industry,
-    projectUrl: row.projectUrl,
-    relatedServicePageIds: Array.isArray(row.relatedServicePageIds) ? row.relatedServicePageIds : [],
-    coverImage: row.coverImage,
-    gallery: row.gallery,
-    tags,
-    featured: row.featured,
-    status: row.status,
-    sortOrder: row.sortOrder,
-    publishedAt: row.publishedAt,
-    scheduledPublishAt: row.scheduledPublishAt ?? null,
-    scheduledUnpublishAt: row.scheduledUnpublishAt ?? null,
-    updatedAt: row.updatedAt,
-    seo: {
-      ...row.seo,
-      slug: row.slug
-    }
-  };
-}
-
-async function supportsPortfolioRelationsColumn() {
-  if (portfolioRelationsColumnPromise) {
-    return portfolioRelationsColumnPromise;
-  }
-
-  portfolioRelationsColumnPromise = (async () => {
-    const result = await getDb().execute(sql`
-      select 1
-      from information_schema.columns
-      where table_name = 'portfolio_projects'
-        and column_name = 'related_service_page_ids'
-      limit 1
-    `);
-
-    return result.rows.length > 0;
-  })();
-
-  return portfolioRelationsColumnPromise;
-}
-
 async function ensureDbBootstrap() {
   if (isBuildPhase()) {
     warnSkippedBuildBootstrap();
@@ -582,39 +317,6 @@ async function ensureDbBootstrap() {
       );
     }
 
-    await withPortfolioTableFallback(async () => {
-      const existingPortfolio = await db
-        .select({ id: portfolioProjectsTable.id })
-        .from(portfolioProjectsTable)
-        .limit(1);
-      if (existingPortfolio.length === 0) {
-        await withLegacyScheduleFallback(
-          async () =>
-            withPortfolioRelationsFallback(
-              async () => {
-                const includeRelations = await supportsPortfolioRelationsColumn();
-                await db
-                  .insert(portfolioProjectsTable)
-                  .values(defaultContent.portfolioProjects.map((project) => portfolioWriteRow(project, includeRelations)))
-                  .onConflictDoNothing();
-              },
-              async () => {
-                await db
-                  .insert(portfolioProjectsTable)
-                  .values(defaultContent.portfolioProjects.map((project) => portfolioWriteRow(project, false)))
-                  .onConflictDoNothing();
-              }
-            ),
-          async () => {
-            await db
-              .insert(portfolioProjectsTable)
-              .values(defaultContent.portfolioProjects.map((project) => portfolioWriteRow(project, false)))
-              .onConflictDoNothing();
-          }
-        );
-      }
-    }, undefined);
-
     const existingCategories = await db.select({ id: categoriesTable.id }).from(categoriesTable).limit(1);
     if (existingCategories.length === 0) {
       await db.insert(categoriesTable).values(defaultContent.categories).onConflictDoNothing();
@@ -631,24 +333,6 @@ async function ensureDbBootstrap() {
     );
     await syncBlogPostCategoryLinks(seededPosts);
 
-    await withPortfolioTableFallback(async () => {
-      const seededPortfolio = await withPortfolioRelationsFallback(
-        () =>
-          withLegacyScheduleFallback(
-            async () => {
-              const includeRelations = await supportsPortfolioRelationsColumn();
-              const rows = await db.select(portfolioSelectShape(includeRelations)).from(portfolioProjectsTable);
-              return rows.map((row) => rowToPortfolio(row as PortfolioRowShape));
-            },
-            () => readLegacyPortfolioProjects()
-          ),
-        async () => {
-          const rows = await db.select(portfolioSelectShape(false, false)).from(portfolioProjectsTable);
-          return rows.map((row) => rowToPortfolio(row as PortfolioRowShape));
-        }
-      );
-      await syncPortfolioProjectTagLinks(seededPortfolio);
-    }, undefined);
   })();
 
   try {
@@ -683,42 +367,13 @@ async function loadAllPosts() {
   });
 }
 
-async function loadAllPortfolioProjects() {
-  return withPortfolioTableFallback(async () => {
-    return withPortfolioRelationsFallback(async () => {
-      return withLegacyScheduleFallback(async () => {
-        await ensureDbBootstrap();
-        const includeRelations = await supportsPortfolioRelationsColumn();
-        const rows = await getDb().select(portfolioSelectShape(includeRelations)).from(portfolioProjectsTable);
-        const tagMap = await mapPortfolioProjectTags(rows.map((row) => row.id));
-        return rows.map((row) => rowToPortfolio(row as PortfolioRowShape, tagMap.get(row.id) ?? row.tags));
-      }, async () => {
-        await ensureDbBootstrap();
-        return readLegacyPortfolioProjects();
-      });
-    }, async () => {
-      await ensureDbBootstrap();
-      const rows = await getDb().select(portfolioSelectShape(false, false)).from(portfolioProjectsTable);
-      const tagMap = await mapPortfolioProjectTags(rows.map((row) => row.id));
-      return rows.map((row) => rowToPortfolio(row as PortfolioRowShape, tagMap.get(row.id) ?? row.tags));
-    });
-  }, []);
-}
-
 export async function replaceAllCmsContent(content: CmsContent) {
   const db = getDb();
   const normalized = mergeWithDefaults(content);
 
   await db.transaction(async (tx) => {
     await tx.delete(postCategoriesTable);
-    await withPortfolioTableFallback(async () => {
-      await tx.delete(portfolioProjectTagsTable);
-      await tx.delete(portfolioTagsTable);
-    }, undefined);
     await tx.delete(blogPostsTable);
-    await withPortfolioTableFallback(async () => {
-      await tx.delete(portfolioProjectsTable);
-    }, undefined);
     await tx.delete(categoriesTable);
     await tx.delete(mediaAssetsTable);
     await tx.delete(pagesTable);
@@ -733,28 +388,10 @@ export async function replaceAllCmsContent(content: CmsContent) {
     await tx.insert(pagesTable).values(Object.values(normalized.pages).map(pageToRow));
     await tx.insert(categoriesTable).values(normalized.categories);
     await tx.insert(blogPostsTable).values(normalized.blogPosts.map(postToRow));
-    await withPortfolioTableFallback(async () => {
-      await withPortfolioRelationsFallback(
-        async () => {
-          const includeRelations = await supportsPortfolioRelationsColumn();
-          await tx
-            .insert(portfolioProjectsTable)
-            .values(normalized.portfolioProjects.map((project) => portfolioWriteRow(project, includeRelations)));
-        },
-        async () => {
-          await tx
-            .insert(portfolioProjectsTable)
-            .values(normalized.portfolioProjects.map((project) => portfolioWriteRow(project, false)));
-        }
-      );
-    }, undefined);
     await tx.insert(mediaAssetsTable).values(normalized.mediaAssets);
   });
 
   await syncBlogPostCategoryLinks(normalized.blogPosts);
-  await withPortfolioTableFallback(async () => {
-    await syncPortfolioProjectTagLinks(normalized.portfolioProjects);
-  }, undefined);
 }
 
 export async function getSettings() {
@@ -1026,327 +663,3 @@ export async function setPostStatus(id: string, status: 'draft' | 'published'): 
   return next;
 }
 
-export async function getPortfolioProjects(includeDrafts = false): Promise<PortfolioProject[]> {
-  const projects = await loadAllPortfolioProjects();
-  const filtered = includeDrafts ? projects : projects.filter((project) => isPortfolioProjectLive(project));
-
-  return filtered.sort((a, b) => {
-    if (a.featured !== b.featured) return a.featured ? -1 : 1;
-    if (a.sortOrder !== b.sortOrder) return a.sortOrder - b.sortOrder;
-    return a.updatedAt < b.updatedAt ? 1 : -1;
-  });
-}
-
-export async function queryPortfolioProjects(input: PortfolioQueryInput) {
-  const projects = await loadAllPortfolioProjects();
-  const query = (input.q ?? '').trim().toLowerCase();
-  const tag = (input.tag ?? '').trim().toLowerCase();
-  const status =
-    input.status === 'draft' || input.status === 'published' || input.status === 'all'
-      ? input.status
-      : 'all';
-  const featured =
-    input.featured === 'featured' || input.featured === 'standard' || input.featured === 'all'
-      ? input.featured
-      : 'all';
-  const dateSort = input.dateSort === 'oldest' ? 'oldest' : 'newest';
-  const page = Number.isFinite(input.page) && (input.page ?? 0) > 0 ? Number(input.page) : 1;
-  const pageSize =
-    Number.isFinite(input.pageSize) && (input.pageSize ?? 0) > 0
-      ? Math.min(Number(input.pageSize), 50)
-      : 10;
-
-  const tags = Array.from(
-    new Set(
-      projects
-        .flatMap((project) => project.tags)
-        .map((entry) => entry.trim())
-        .filter((entry) => entry.length > 0)
-    )
-  ).sort((a, b) => (a > b ? 1 : -1));
-
-  let filtered = projects.filter((project) => {
-    if (!input.includeDrafts && !isPortfolioProjectLive(project)) return false;
-    if (status !== 'all' && project.status !== status) return false;
-    if (featured === 'featured' && !project.featured) return false;
-    if (featured === 'standard' && project.featured) return false;
-
-    if (query.length > 0) {
-      const haystack = `${project.title} ${project.clientName} ${project.serviceType} ${project.industry}`.toLowerCase();
-      if (!haystack.includes(query)) return false;
-    }
-
-    if (tag.length > 0) {
-      const hasTag = project.tags.some((entry) => entry.toLowerCase() === tag);
-      if (!hasTag) return false;
-    }
-
-    return true;
-  });
-
-  filtered = filtered.sort((a, b) => {
-    if (a.featured !== b.featured) return a.featured ? -1 : 1;
-    if (a.sortOrder !== b.sortOrder) return a.sortOrder - b.sortOrder;
-    if (dateSort === 'oldest') return a.updatedAt > b.updatedAt ? 1 : -1;
-    return a.updatedAt < b.updatedAt ? 1 : -1;
-  });
-
-  const total = filtered.length;
-  const start = (page - 1) * pageSize;
-  const paginated = filtered.slice(start, start + pageSize);
-
-  return {
-    projects: paginated,
-    meta: {
-      total,
-      page,
-      pageSize,
-      tags
-    }
-  };
-}
-
-export async function getPortfolioProjectById(id: string): Promise<PortfolioProject | null> {
-  return withPortfolioTableFallback(async () => {
-    return withPortfolioRelationsFallback(async () => {
-      return withLegacyScheduleFallback(async () => {
-        await ensureDbBootstrap();
-        const includeRelations = await supportsPortfolioRelationsColumn();
-        const row = await getDb()
-          .select(portfolioSelectShape(includeRelations))
-          .from(portfolioProjectsTable)
-          .where(eq(portfolioProjectsTable.id, id))
-          .limit(1);
-        if (!row[0]) return null;
-        const tagMap = await mapPortfolioProjectTags([id]);
-        return rowToPortfolio(row[0] as PortfolioRowShape, tagMap.get(id) ?? row[0].tags);
-      }, async () => {
-        await ensureDbBootstrap();
-        const result = await getDb().execute<LegacyPortfolioRow>(sql`
-          select id, title, slug, summary, challenge, solution, outcome, client_name as "clientName", service_type as "serviceType",
-            industry, project_url as "projectUrl", cover_image as "coverImage", gallery, tags, featured, status, sort_order as "sortOrder",
-            published_at as "publishedAt", updated_at as "updatedAt", seo
-          from portfolio_projects
-          where id = ${id}
-          limit 1
-        `);
-        if (!result.rows[0]) return null;
-        const tagMap = await mapPortfolioProjectTags([id]);
-        return rowToLegacyPortfolio(result.rows[0], tagMap.get(id) ?? result.rows[0].tags);
-      });
-    }, async () => {
-      await ensureDbBootstrap();
-      const row = await getDb()
-        .select(portfolioSelectShape(false, false))
-        .from(portfolioProjectsTable)
-        .where(eq(portfolioProjectsTable.id, id))
-        .limit(1);
-      if (!row[0]) return null;
-      const tagMap = await mapPortfolioProjectTags([id]);
-      return rowToPortfolio(row[0] as PortfolioRowShape, tagMap.get(id) ?? row[0].tags);
-    });
-  }, null);
-}
-
-export async function getPortfolioProjectBySlug(slug: string): Promise<PortfolioProject | null> {
-  return withPortfolioTableFallback(async () => {
-    const normalized = normalizeSlug(slug);
-    return withPortfolioRelationsFallback(async () => {
-      return withLegacyScheduleFallback(async () => {
-        await ensureDbBootstrap();
-        const includeRelations = await supportsPortfolioRelationsColumn();
-        const row = await getDb()
-          .select(portfolioSelectShape(includeRelations))
-          .from(portfolioProjectsTable)
-          .where(eq(portfolioProjectsTable.slug, normalized))
-          .limit(1);
-        if (!row[0]) return null;
-        if (!isPortfolioProjectLive(rowToPortfolio(row[0] as PortfolioRowShape))) return null;
-        const tagMap = await mapPortfolioProjectTags([row[0].id]);
-        return rowToPortfolio(row[0] as PortfolioRowShape, tagMap.get(row[0].id) ?? row[0].tags);
-      }, async () => {
-        await ensureDbBootstrap();
-        const result = await getDb().execute<LegacyPortfolioRow>(sql`
-          select id, title, slug, summary, challenge, solution, outcome, client_name as "clientName", service_type as "serviceType",
-            industry, project_url as "projectUrl", cover_image as "coverImage", gallery, tags, featured, status, sort_order as "sortOrder",
-            published_at as "publishedAt", updated_at as "updatedAt", seo
-          from portfolio_projects
-          where slug = ${normalized}
-          limit 1
-        `);
-        if (!result.rows[0]) return null;
-        const tagMap = await mapPortfolioProjectTags([result.rows[0].id]);
-        return rowToLegacyPortfolio(result.rows[0], tagMap.get(result.rows[0].id) ?? result.rows[0].tags);
-      });
-    }, async () => {
-      await ensureDbBootstrap();
-      const row = await getDb()
-        .select(portfolioSelectShape(false, false))
-        .from(portfolioProjectsTable)
-        .where(eq(portfolioProjectsTable.slug, normalized))
-        .limit(1);
-      if (!row[0]) return null;
-      if (!isPortfolioProjectLive(rowToPortfolio(row[0] as PortfolioRowShape))) return null;
-      const tagMap = await mapPortfolioProjectTags([row[0].id]);
-      return rowToPortfolio(row[0] as PortfolioRowShape, tagMap.get(row[0].id) ?? row[0].tags);
-    });
-  }, null);
-}
-
-export async function createPortfolioProject(
-  payload?: Partial<PortfolioProject>
-): Promise<PortfolioProject> {
-  const projects = await loadAllPortfolioProjects();
-  const id = crypto.randomUUID();
-  const title = payload?.title?.trim() || 'Untitled project';
-  const slug = uniquePortfolioSlug(projects, title, payload?.seo?.slug);
-  const requestedStatus = payload?.status;
-  const status = requestedStatus ?? 'draft';
-  const maxSort = projects.reduce((acc, project) => Math.max(acc, project.sortOrder), 0);
-
-  const project: PortfolioProject = {
-    id,
-    title,
-    summary: payload?.summary?.trim() || '',
-    challenge: payload?.challenge || '',
-    solution: payload?.solution || '',
-    outcome: payload?.outcome || '',
-    clientName: payload?.clientName?.trim() || '',
-    serviceType: payload?.serviceType?.trim() || '',
-    industry: payload?.industry?.trim() || '',
-    projectUrl: payload?.projectUrl || '',
-    relatedServicePageIds: payload?.relatedServicePageIds ?? [],
-    coverImage: payload?.coverImage || '',
-    gallery: payload?.gallery ?? [],
-    tags: payload?.tags ?? [],
-    featured: payload?.featured ?? false,
-    status,
-    sortOrder: payload?.sortOrder ?? maxSort + 1,
-    publishedAt: status === 'published' ? nowIso() : null,
-    scheduledPublishAt: payload?.scheduledPublishAt ?? null,
-    scheduledUnpublishAt: payload?.scheduledUnpublishAt ?? null,
-    updatedAt: nowIso(),
-    seo: {
-      metaTitle: payload?.seo?.metaTitle || title,
-      metaDescription: payload?.seo?.metaDescription || '',
-      slug,
-      canonical: payload?.seo?.canonical || '',
-      socialImage: payload?.seo?.socialImage || '',
-      noIndex: payload?.seo?.noIndex ?? false,
-      keywords: payload?.seo?.keywords ?? []
-    }
-  };
-
-  const includeRelations = await supportsPortfolioRelationsColumn();
-  await withPortfolioRelationsFallback(
-    () => getDb().insert(portfolioProjectsTable).values(portfolioWriteRow(project, includeRelations)),
-    () => getDb().insert(portfolioProjectsTable).values(portfolioWriteRow(project, false))
-  );
-  await withPortfolioTableFallback(async () => {
-    await syncPortfolioProjectTagLinks([project]);
-  }, undefined);
-  return project;
-}
-
-export async function updatePortfolioProject(
-  id: string,
-  payload: PortfolioProject
-): Promise<PortfolioProject | null> {
-  const existing = await getPortfolioProjectById(id);
-  if (!existing) return null;
-
-  const projects = await loadAllPortfolioProjects();
-  const slug = uniquePortfolioSlug(projects, payload.title, payload.seo.slug, id);
-
-  const next: PortfolioProject = {
-    ...payload,
-    id,
-    seo: {
-      ...payload.seo,
-      slug
-    },
-    publishedAt:
-      payload.status === 'published'
-        ? existing.publishedAt ?? nowIso()
-        : payload.publishedAt ?? null,
-    updatedAt: nowIso()
-  };
-
-  const includeRelations = await supportsPortfolioRelationsColumn();
-  await withPortfolioRelationsFallback(
-    () =>
-      getDb()
-        .update(portfolioProjectsTable)
-        .set(portfolioWriteRow(next, includeRelations))
-        .where(eq(portfolioProjectsTable.id, id)),
-    () =>
-      getDb()
-        .update(portfolioProjectsTable)
-        .set(portfolioWriteRow(next, false))
-        .where(eq(portfolioProjectsTable.id, id))
-  );
-  await withPortfolioTableFallback(async () => {
-    await syncPortfolioProjectTagLinks([next]);
-  }, undefined);
-
-  return next;
-}
-
-export async function deletePortfolioProject(id: string): Promise<boolean> {
-  const existing = await getPortfolioProjectById(id);
-  if (!existing) return false;
-
-  await withPortfolioTableFallback(async () => {
-    await deletePortfolioProjectTagLinks([id]);
-  }, undefined);
-  await getDb().delete(portfolioProjectsTable).where(eq(portfolioProjectsTable.id, id));
-  return true;
-}
-
-export async function setPortfolioProjectStatus(
-  id: string,
-  status: 'draft' | 'published'
-): Promise<PortfolioProject | null> {
-  const existing = await getPortfolioProjectById(id);
-  if (!existing) return null;
-
-  const next: PortfolioProject = {
-    ...existing,
-    status,
-    publishedAt: status === 'published' ? existing.publishedAt ?? nowIso() : null,
-    scheduledPublishAt: status === 'published' ? null : existing.scheduledPublishAt ?? null,
-    scheduledUnpublishAt: status === 'draft' ? null : existing.scheduledUnpublishAt ?? null,
-    updatedAt: nowIso()
-  };
-
-  const includeRelations = await supportsPortfolioRelationsColumn();
-  await withPortfolioRelationsFallback(
-    () =>
-      getDb()
-        .update(portfolioProjectsTable)
-        .set(portfolioWriteRow(next, includeRelations))
-        .where(eq(portfolioProjectsTable.id, id)),
-    () =>
-      getDb()
-        .update(portfolioProjectsTable)
-        .set(portfolioWriteRow(next, false))
-        .where(eq(portfolioProjectsTable.id, id))
-  );
-
-  return next;
-}
-
-export async function reorderPortfolioProjects(
-  orderedIds: string[]
-): Promise<{ updated: number }> {
-  let updated = 0;
-  for (let i = 0; i < orderedIds.length; i++) {
-    const id = orderedIds[i];
-    await getDb()
-      .update(portfolioProjectsTable)
-      .set({ sortOrder: i + 1 })
-      .where(eq(portfolioProjectsTable.id, id));
-    updated++;
-  }
-  return { updated };
-}

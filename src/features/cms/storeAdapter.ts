@@ -56,11 +56,10 @@ export async function readRawCmsContent(): Promise<CmsContent> {
     return stores.contentStore.readContent();
   }
 
-  const [settings, pages, blogPosts, portfolioProjects, categories, mediaAssets] = await Promise.all([
+  const [settings, pages, blogPosts, categories, mediaAssets] = await Promise.all([
     stores.contentStore.getSettings(),
     stores.contentStore.getPages(),
     stores.contentStore.getBlogPosts(true),
-    stores.contentStore.getPortfolioProjects(true),
     stores.collectionsStore.getCategories(),
     stores.collectionsStore.getMediaAssets()
   ]);
@@ -69,7 +68,7 @@ export async function readRawCmsContent(): Promise<CmsContent> {
     settings,
     pages,
     blogPosts,
-    portfolioProjects,
+    portfolioProjects: [],
     categories,
     mediaAssets
   };

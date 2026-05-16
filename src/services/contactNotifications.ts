@@ -1,31 +1,19 @@
 import { env } from '@/services/env';
-import type { ContactSubmission } from '@/features/cms/types';
 
-type NotificationRequest = {
+type ContactSubmissionPayload = {
   name: string;
   email: string;
   company: string;
   serviceCategory: string;
   projectOverview: string;
-  status: ContactSubmission['status'];
   createdAt: string;
 };
 
-export async function notifyContactSubmission(submission: ContactSubmission) {
+export async function notifyContactSubmission(submission: ContactSubmissionPayload) {
   const webhookUrl = env.contactNotificationWebhookUrl;
   if (!webhookUrl) {
     return { delivered: false };
   }
-
-  const payload: NotificationRequest = {
-    name: submission.name,
-    email: submission.email,
-    company: submission.company,
-    serviceCategory: submission.serviceCategory,
-    projectOverview: submission.projectOverview,
-    status: submission.status,
-    createdAt: submission.createdAt
-  };
 
   const headers: Record<string, string> = {
     'Content-Type': 'application/json'
@@ -44,7 +32,7 @@ export async function notifyContactSubmission(submission: ContactSubmission) {
       headers,
       body: JSON.stringify({
         event: 'contact_submission_created',
-        payload,
+        payload: submission,
         source: 'react-cms'
       }),
       signal: controller.signal

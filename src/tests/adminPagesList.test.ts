@@ -27,18 +27,18 @@ describe('adminPagesList', () => {
   const pages: LandingPage[] = [
     makePage({ id: 'about', title: 'About Us', navLabel: 'About', published: true, updatedAt: '2025-02-01T00:00:00.000Z' }),
     makePage({ id: 'contact', title: 'Contact', navLabel: 'Contact', published: false, updatedAt: '2025-02-03T00:00:00.000Z' }),
-    makePage({ id: 'service', title: 'Services', navLabel: 'Services', published: true, updatedAt: '2025-02-02T00:00:00.000Z' })
+    makePage({ id: 'home', title: 'Home', navLabel: 'Home', published: true, updatedAt: '2025-02-02T00:00:00.000Z' })
   ];
 
   it('filters by status and search query', () => {
     const result = filterAndSortPages(pages, {
-      q: 'serv',
+      q: 'hom',
       status: 'published',
       sortBy: 'title_asc'
     });
 
     expect(result).toHaveLength(1);
-    expect(result[0].id).toBe('service');
+    expect(result[0].id).toBe('home');
   });
 
   it('sorts by updated date descending', () => {
@@ -48,6 +48,6 @@ describe('adminPagesList', () => {
       sortBy: 'updated_desc'
     });
 
-    expect(result.map((page) => page.id)).toEqual(['contact', 'service', 'about']);
+    expect(result.map((page) => page.id)).toEqual(['contact', 'home', 'about']);
   });
 });

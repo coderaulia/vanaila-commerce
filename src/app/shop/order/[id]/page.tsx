@@ -1,16 +1,21 @@
 import { notFound } from 'next/navigation';
 
 import { modules } from '@/config/modules';
+import { verifyOrderReceiptToken } from '@/features/commerce/orderReceipt';
 import { getOrderById } from '@/features/commerce/store';
 
-type Props = { params: Promise<{ id: string }> };
+type Props = {
+  params: Promise<{ id: string }>;
+  searchParams?: Promise<{ token?: string }>;
+};
 
-export default async function OrderConfirmationPage({ params }: Props) {
+export default async function OrderConfirmationPage({ params, searchParams }: Props) {
   if (!modules.ENABLE_STORE_MODULE) notFound();
 
   const { id } = await params;
+  const { token } = (await searchParams) ?? {};
   const order = await getOrderById(id);
-  if (!order) notFound();
+  if (!order || !verifyOrderReceiptToken(order, token)) notFound();
 
   return (
     <main className="order-confirmation-page">

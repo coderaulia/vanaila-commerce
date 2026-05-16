@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import type { CSSProperties } from 'react';
 
-import type { HeroBlock, LandingPage, PortfolioProject, PrimaryCtaBlock, SolutionsGridBlock, ValueTripletBlock, WhySplitBlock } from '@/features/cms/types';
+import type { HeroBlock, LandingPage, PrimaryCtaBlock, SolutionsGridBlock, ValueTripletBlock, WhySplitBlock } from '@/features/cms/types';
 
 import { Reveal } from '@/components/animations/Reveal';
 import { StaggerGroup, StaggerItem } from '@/components/animations/StaggerGroup';
@@ -11,7 +11,6 @@ import { useCursorMode } from '@/components/CustomCursor';
 
 type VanailaRedesignHomeProps = {
   page: LandingPage;
-  projects: PortfolioProject[];
 };
 
 const serviceAccents = ['#0033FF', '#FF5B22', '#0A0E1A', '#C8E64B', '#2D5FFF'];
@@ -29,18 +28,14 @@ function splitHeroTitle(page: LandingPage) {
   return { hero, primary, accent };
 }
 
-export function VanailaRedesignHome({ page, projects }: VanailaRedesignHomeProps) {
+export function VanailaRedesignHome({ page }: VanailaRedesignHomeProps) {
   const { setMode } = useCursorMode();
   const { hero, accent } = splitHeroTitle(page);
   const values = findBlock<ValueTripletBlock>(page, 'value_triplet');
   const solutions = findBlock<SolutionsGridBlock>(page, 'solutions_grid');
   const why = findBlock<WhySplitBlock>(page, 'why_split');
   const cta = findBlock<PrimaryCtaBlock>(page, 'primary_cta');
-  const featuredProjects = projects.slice(0, 4);
-  const clientNames =
-    projects.length > 0
-      ? projects.slice(0, 8).map((project) => project.clientName || project.title)
-      : fallbackClients;
+  const clientNames = fallbackClients;
 
   return (
     <main className="v-home">
@@ -80,7 +75,7 @@ export function VanailaRedesignHome({ page, projects }: VanailaRedesignHomeProps
             </Link>
             <Link
               className="v-home-btn v-home-btn-ghost"
-              href={hero?.secondaryCtaHref || '/portfolio'}
+              href={hero?.secondaryCtaHref || '/contact'}
               onMouseEnter={() => setMode('link')}
               onMouseLeave={() => setMode('default')}
             >
@@ -166,36 +161,11 @@ export function VanailaRedesignHome({ page, projects }: VanailaRedesignHomeProps
               Real businesses, <i>real results.</i>
             </h2>
           </div>
-          <p>2024 - 2026 / {Math.max(projects.length, 4)} delivered stories in the CMS.</p>
+          <p>2024 - 2026 / 30+ delivered projects.</p>
         </div>
-        <StaggerGroup className="v-home-work-grid">
-          {featuredProjects.map((project, index) => (
-            <StaggerItem key={project.id}>
-              <Link
-                className={`v-home-work-card v-home-work-card-${index + 1}`}
-                href={`/portfolio/${project.seo.slug}`}
-                onMouseEnter={() => setMode('view')}
-                onMouseLeave={() => setMode('default')}
-              >
-                <div className="v-home-work-image">
-                  {project.coverImage ? (
-                    <img src={project.coverImage} alt={project.title} decoding="async" loading="lazy" />
-                  ) : (
-                    <span>{project.serviceType}</span>
-                  )}
-                </div>
-                <div className="v-home-work-meta">
-                  <span>{project.serviceType}</span>
-                  <h3>{project.title}</h3>
-                  <p>{project.summary}</p>
-                </div>
-              </Link>
-            </StaggerItem>
-          ))}
-        </StaggerGroup>
         <Reveal>
-          <Link className="v-home-text-link" href="/portfolio">
-            View our full portfolio <span>-&gt;</span>
+          <Link className="v-home-text-link" href="/contact">
+            Talk to us about your project <span>-&gt;</span>
           </Link>
         </Reveal>
       </Reveal>
@@ -241,7 +211,6 @@ export function VanailaRedesignHome({ page, projects }: VanailaRedesignHomeProps
           </div>
         </Reveal>
         <div className="v-home-logo-actions">
-          <Link href="/portfolio">View our portfolio -&gt;</Link>
           <Link href="/contact">Let&apos;s talk growth -&gt;</Link>
         </div>
       </Reveal>

@@ -1,4 +1,4 @@
-import type { BlogPost, HomeBlock, LandingPage, PageSection, PortfolioProject } from '@/features/cms/types';
+import type { BlogPost, HomeBlock, LandingPage, PageSection } from '@/features/cms/types';
 
 export type EditorValidationIssue = {
   path: string;
@@ -249,20 +249,6 @@ export function validatePageEditor(page: LandingPage) {
     validateSection(issues, section, index);
   });
 
-  return issues;
-}
-
-export function validatePortfolioEditor(project: PortfolioProject) {
-  const issues: EditorValidationIssue[] = [];
-  pushRequired(issues, 'title', project.title, 'Title');
-  pushRequired(issues, 'summary', project.summary, 'Summary');
-  pushRequired(issues, 'challenge', project.challenge, 'Challenge');
-  pushRequired(issues, 'solution', project.solution, 'Solution');
-  pushRequired(issues, 'outcome', project.outcome, 'Outcome');
-  pushRequired(issues, 'clientName', project.clientName, 'Client name');
-  pushRequired(issues, 'serviceType', project.serviceType, 'Service type');
-  validateSeo(issues, 'seo', project.seo);
-  validateSchedule(issues, '', project);
   return issues;
 }
 

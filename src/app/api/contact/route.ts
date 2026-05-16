@@ -1,8 +1,5 @@
 import { NextResponse } from 'next/server';
 
-import { createContactSubmission } from '@/features/cms/contactSubmissionsStore';
-import { validateContactSubmission } from '@/features/cms/validators';
-import { env } from '@/services/env';
 import { notifyContactSubmission } from '@/services/contactNotifications';
 import {
   assertCsrfToken,
@@ -10,8 +7,44 @@ import {
   assertTrustedMutationRequest,
   readJsonWithLimit
 } from '@/services/requestSecurity';
+import { asBoolean } from '@/lib/utils';
 
 const contactSubmissionBodyLimitBytes = 16 * 1024;
+
+const maxLengths = {
+  name: 120,
+  company: 160,
+  email: 254,
+  serviceCategory: 200,
+  projectOverview: 5000
+} as const;
+
+function asStr(value: unknown, max: number): string {
+  const s = typeof value === 'string' ? value.trim() : '';
+  return s.slice(0, max);
+}
+
+function validatePayload(body: unknown): {
+  name: string;
+  company: string;
+  email: string;
+  serviceCategory: string;
+  projectOverview: string;
+} | null {
+  if (!body || typeof body !== 'object' || Array.isArray(body)) return null;
+  const b = body as Record<string, unknown>;
+
+  const name = asStr(b.name, maxLengths.name);
+  const company = asStr(b.company, maxLengths.company);
+  const email = asStr(b.email, maxLengths.email).toLowerCase();
+  const serviceCategory = asStr(b.serviceCategory, maxLengths.serviceCategory);
+  const projectOverview = asStr(b.projectOverview, maxLengths.projectOverview);
+
+  const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  if (!name || !emailOk || !serviceCategory || !projectOverview) return null;
+
+  return { name, company, email, serviceCategory, projectOverview };
+}
 
 export async function POST(request: Request) {
   const originFailure = assertTrustedMutationRequest(request);
@@ -23,25 +56,18 @@ export async function POST(request: Request) {
   const rateLimitFailure = await assertRateLimit(request, 'contact-form', 10, 60_000);
   if (rateLimitFailure) return rateLimitFailure;
 
-  if (!env.databaseUrl) {
-    return NextResponse.json({ error: 'Contact submissions are unavailable.' }, { status: 503 });
-  }
-
   const body = await readJsonWithLimit(request, contactSubmissionBodyLimitBytes);
   if (!body.ok) return body.response;
 
-  const payload = validateContactSubmission(body.value);
+  const payload = validatePayload(body.value);
   if (!payload) {
     return NextResponse.json({ error: 'Invalid contact submission payload.' }, { status: 400 });
   }
 
-  const submission = await createContactSubmission({
-    name: payload.name,
-    company: payload.company,
-    email: payload.email,
-    serviceCategory: payload.serviceCategory,
-    projectOverview: payload.projectOverview
-  });
+  const submission = {
+    ...payload,
+    createdAt: new Date().toISOString()
+  };
 
   try {
     await notifyContactSubmission(submission);

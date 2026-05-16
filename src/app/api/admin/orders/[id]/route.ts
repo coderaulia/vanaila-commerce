@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 
-import { assertAdminPermission, getAdminSession, logAdminAuditEvent } from '@/features/cms/adminAuth';
+import { assertAdminPermission, logAdminAuditEvent } from '@/features/cms/adminAuth';
 import { modules } from '@/config/modules';
 import { getOrderById, updateOrderStatus, updatePaymentStatus } from '@/features/commerce/store';
 import { sendOrderStatusEmail } from '@/features/commerce/orderEmail';
@@ -14,8 +14,8 @@ export async function GET(request: Request, context: RouteContext) {
     return NextResponse.json({ error: 'Store module disabled' }, { status: 404 });
   }
 
-  const session = await getAdminSession(request);
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const auth = await assertAdminPermission(request, 'store:manage_orders');
+  if ('error' in auth) return auth.error;
 
   const { id } = await context.params;
   const order = await getOrderById(id);

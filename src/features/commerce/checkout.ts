@@ -6,8 +6,10 @@ import { eq, sql } from 'drizzle-orm';
 
 import type { CheckoutPayload, Order, OrderItem } from './types';
 import { adjustStock, getOrCreateCustomer, getCouponByCode } from './store';
+import { createOrderReceiptToken } from './orderReceipt';
 
 const nowIso = () => new Date().toISOString();
+const MAX_CHECKOUT_QUANTITY = 99;
 
 function generateOrderNumber(): string {
   const date = new Date();
@@ -19,12 +21,20 @@ function generateOrderNumber(): string {
 export type CheckoutResult = {
   order: Order;
   items: OrderItem[];
+  receiptToken: string;
   paymentUrl?: string;
 };
 
 export async function processCheckout(payload: CheckoutPayload): Promise<CheckoutResult> {
   const db = getDb();
   const now = nowIso();
+
+  if (
+    payload.items.length === 0 ||
+    payload.items.some((item) => !item.variantId || !Number.isInteger(item.quantity) || item.quantity < 1 || item.quantity > MAX_CHECKOUT_QUANTITY)
+  ) {
+    throw new Error('Invalid checkout items');
+  }
 
   // 1. Resolve customer
   const customer = await getOrCreateCustomer(payload.customer);
@@ -162,12 +172,6 @@ export async function processCheckout(payload: CheckoutPayload): Promise<Checkou
     })
     .where(eq(customersTable.id, customer.id));
 
-  // 8. Payment processing
-  let paymentUrl: string | undefined;
-  if (payload.paymentMethod === 'midtrans') {
-    paymentUrl = await createMidtransTransaction(orderId, orderNumber, total, payload.customer);
-  }
-
   const order: Order = {
     id: orderId,
     orderNumber,
@@ -193,7 +197,15 @@ export async function processCheckout(payload: CheckoutPayload): Promise<Checkou
     items: orderItems.map((i) => ({ ...i, orderId }))
   };
 
-  return { order, items: order.items!, paymentUrl };
+  const receiptToken = createOrderReceiptToken(order);
+
+  // 8. Payment processing
+  let paymentUrl: string | undefined;
+  if (payload.paymentMethod === 'midtrans') {
+    paymentUrl = await createMidtransTransaction(orderId, orderNumber, total, receiptToken, payload.customer);
+  }
+
+  return { order, items: order.items!, receiptToken, paymentUrl };
 }
 
 // ─── Midtrans Integration ───────────────────────────────────────────────────
@@ -202,6 +214,7 @@ async function createMidtransTransaction(
   orderId: string,
   orderNumber: string,
   total: number,
+  receiptToken: string,
   customer: { name: string; email: string; phone: string }
 ): Promise<string | undefined> {
   const serverKey = process.env.MIDTRANS_SERVER_KEY?.trim();
@@ -225,7 +238,7 @@ async function createMidtransTransaction(
       phone: customer.phone
     },
     callbacks: {
-      finish: `${process.env.NEXT_PUBLIC_SITE_URL}/shop/order/${orderId}?status=finish`
+      finish: `${process.env.NEXT_PUBLIC_SITE_URL}/shop/order/${orderId}?status=finish&token=${encodeURIComponent(receiptToken)}`
     }
   };
 

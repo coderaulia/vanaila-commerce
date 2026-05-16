@@ -6,3 +6,25 @@
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+/* Add-to-cart button states */
+@keyframes atc-pop {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(0.94); }
+  70%  { transform: scale(1.04); }
+  100% { transform: scale(1); }
+}
+
+@keyframes atc-check-in {
+  0%   { opacity: 0; transform: translateY(4px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+.atc-btn-added {
+  animation: atc-pop 0.28s ease-out forwards;
+  background-color: #16a34a !important;
+}
+
+.atc-btn-added .atc-label {
+  animation: atc-check-in 0.2s ease-out 0.05s both;
+}

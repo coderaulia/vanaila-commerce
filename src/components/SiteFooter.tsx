@@ -29,8 +29,7 @@ export function SiteFooter({ siteName, settings }: SiteFooterProps) {
   const serviceLinks = settings.navigation.footerServiceLinks.filter((l) => l.enabled);
   const footerNavigator =
     navigatorLinks.length > 0 ? navigatorLinks.map(mapLink) : siteProfile.navigation.fallbackNavigator;
-  const footerServices =
-    serviceLinks.length > 0 ? serviceLinks.map(mapLink) : siteProfile.navigation.fallbackServices;
+  const footerServices = serviceLinks.filter((l) => l.enabled).map(mapLink);
 
   const copyright =
     settings.branding.copyrightText.trim() || `© ${new Date().getFullYear()} ${brandName}.`;

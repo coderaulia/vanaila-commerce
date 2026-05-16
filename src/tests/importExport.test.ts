@@ -103,7 +103,7 @@ describe('import/export helpers', () => {
       ...currentContent.pages.about,
       seo: {
         ...currentContent.pages.about.seo,
-        slug: currentContent.pages.service.seo.slug
+        slug: currentContent.pages.contact.seo.slug
       }
     };
 

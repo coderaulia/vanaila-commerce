@@ -26,6 +26,7 @@ export function AppShell({ siteName, navItems, settings, children }: AppShellPro
   const pathname = usePathname();
   const isAdminRoute = pathname === '/admin' || pathname.startsWith('/admin/');
   const isStoreRoute =
+    pathname === '/' ||
     pathname === '/shop' ||
     pathname.startsWith('/shop/') ||
     pathname === '/cart' ||

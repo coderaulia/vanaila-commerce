@@ -19,8 +19,33 @@ const MAX = {
   notes: 1024
 };
 
+const MAX_ITEMS = 100;
+const MAX_QUANTITY = 99;
+
 function cap(value: unknown, max: number): string {
   return String(value ?? '').trim().slice(0, max);
+}
+
+function normalizeItems(value: unknown): CheckoutPayload['items'] | null {
+  if (!Array.isArray(value) || value.length === 0 || value.length > MAX_ITEMS) {
+    return null;
+  }
+
+  const items = value.map((item) => {
+    if (!item || typeof item !== 'object') return null;
+    const record = item as Record<string, unknown>;
+    const variantId = String(record.variantId ?? '').trim();
+    const quantity = Number(record.quantity);
+
+    if (!variantId || !Number.isInteger(quantity) || quantity < 1 || quantity > MAX_QUANTITY) {
+      return null;
+    }
+
+    return { variantId, quantity };
+  });
+
+  if (items.some((item) => item === null)) return null;
+  return items as CheckoutPayload['items'];
 }
 
 export async function POST(request: Request) {
@@ -37,9 +62,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Invalid checkout payload' }, { status: 400 });
   }
 
+  const items = normalizeItems(raw.items);
+  if (!items) {
+    return NextResponse.json({ error: 'Invalid checkout items' }, { status: 400 });
+  }
+
   // Apply length caps to all string fields before any further processing
   const body: CheckoutPayload = {
-    items: raw.items,
+    items,
     customer: {
       email: cap(raw.customer.email, MAX.email),
       name: cap(raw.customer.name, MAX.name),
@@ -66,6 +96,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       order: result.order,
+      receiptToken: result.receiptToken,
       paymentUrl: result.paymentUrl
     }, { status: 201 });
   } catch (err) {

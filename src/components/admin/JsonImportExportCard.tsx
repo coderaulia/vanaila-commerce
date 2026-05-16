@@ -128,7 +128,7 @@ export function JsonImportExportCard({
     }
 
     const payload = (await response.json()) as CmsImportResult;
-    setNotice(`Imported ${payload.importedCount} item(s). Totals now: ${payload.totals.pages} pages, ${payload.totals.blogPosts} posts, ${payload.totals.portfolioProjects} projects.`);
+    setNotice(`Imported ${payload.importedCount} item(s). Totals now: ${payload.totals.pages} pages, ${payload.totals.blogPosts} posts.`);
     if (onImported) {
       await onImported(payload);
     }

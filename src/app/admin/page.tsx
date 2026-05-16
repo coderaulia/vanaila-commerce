@@ -8,8 +8,7 @@ import type { AdminSessionUser } from '@/features/cms/adminTypes';
 import type { DashboardSummary } from '@/features/cms/dashboardSummary';
 import {
   getBlogPostPublicationLabel,
-  getLandingPagePublicationLabel,
-  getPortfolioProjectPublicationLabel
+  getLandingPagePublicationLabel
 } from '@/features/cms/publicationState';
 import type { AdminPermission } from '@/features/cms/types';
 import { csrfFetch } from '@/lib/clientCsrf';
@@ -39,9 +38,7 @@ const widgetLabels: Record<WidgetId, string> = {
 const quickActions = [
   { href: '/admin/pages', label: 'Edit landing pages', permission: 'content:edit' },
   { href: '/admin/blog', label: 'Manage posts', permission: 'content:edit' },
-  { href: '/admin/portfolio', label: 'Manage portfolio', permission: 'content:edit' },
   { href: '/admin/categories', label: 'Manage categories', permission: 'taxonomy:edit' },
-  { href: '/admin/contact-submissions', label: 'Review leads' },
   { href: '/admin/media', label: 'Media library', permission: 'media:edit' },
   { href: '/admin/team', label: 'Manage team', permission: 'team:manage' },
   { href: '/admin/analytics', label: 'Analytics', permission: 'analytics:view' },
@@ -54,8 +51,6 @@ type Metrics = {
   scheduledPages: number;
   publishedPosts: number;
   scheduledPosts: number;
-  publishedPortfolio: number;
-  scheduledPortfolio: number;
 };
 
 function KpiWidget({ data, metrics }: { data: DashboardSummary; metrics: Metrics | null }) {
@@ -79,14 +74,6 @@ function KpiWidget({ data, metrics }: { data: DashboardSummary; metrics: Metrics
       <article className="admin-card">
         <p className="admin-kpi-label">Scheduled posts</p>
         <p className="admin-kpi-value">{metrics.scheduledPosts}</p>
-      </article>
-      <article className="admin-card">
-        <p className="admin-kpi-label">Published portfolio</p>
-        <p className="admin-kpi-value">{metrics.publishedPortfolio}</p>
-      </article>
-      <article className="admin-card">
-        <p className="admin-kpi-label">Scheduled portfolio</p>
-        <p className="admin-kpi-value">{metrics.scheduledPortfolio}</p>
       </article>
     </section>
   );
@@ -277,13 +264,7 @@ function DashboardPanel({ user }: DashboardPanelProps) {
     const scheduledPages = data.pages.filter((page) => getLandingPagePublicationLabel(page) === 'scheduled').length;
     const publishedPosts = data.blogPosts.filter((post) => getBlogPostPublicationLabel(post) === 'published').length;
     const scheduledPosts = data.blogPosts.filter((post) => getBlogPostPublicationLabel(post) === 'scheduled').length;
-    const publishedPortfolio = data.portfolioProjects.filter(
-      (project) => getPortfolioProjectPublicationLabel(project) === 'published'
-    ).length;
-    const scheduledPortfolio = data.portfolioProjects.filter(
-      (project) => getPortfolioProjectPublicationLabel(project) === 'scheduled'
-    ).length;
-    return { publishedPages, scheduledPages, publishedPosts, scheduledPosts, publishedPortfolio, scheduledPortfolio };
+    return { publishedPages, scheduledPages, publishedPosts, scheduledPosts };
   }, [data]);
 
   const orderedWidgets = useMemo(() => {

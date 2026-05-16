@@ -173,14 +173,14 @@ describe('CMS validators', () => {
 
   it('sanitizes protocol-relative URLs from CMS payloads', () => {
     const page = validateLandingPage({
-      id: 'partnership',
-      title: 'Partnership',
-      navLabel: 'Partnership',
+      id: 'contact',
+      title: 'Contact',
+      navLabel: 'Contact',
       published: true,
       seo: {
-        metaTitle: 'Partnership',
+        metaTitle: 'Contact',
         metaDescription: 'desc',
-        slug: 'partnership',
+        slug: 'contact',
         canonical: '',
         socialImage: '//evil.example/social.png',
         noIndex: false

@@ -10,31 +10,12 @@ import type { AdminSessionUser } from '@/features/cms/adminTypes';
 import { formatAdminRoleLabel } from '@/features/cms/adminPermissions';
 import type { AdminPermission } from '@/features/cms/types';
 
-const siteManagementLinks: Array<{ href: string; label: string; permission?: AdminPermission }> = [
-  { href: '/admin/settings', label: 'Settings', permission: 'settings:edit' },
-  { href: '/admin/contact-submissions', label: 'Contact Leads' },
-  { href: '/admin/categories', label: 'Categories', permission: 'taxonomy:edit' },
-  { href: '/admin/media', label: 'Media Library', permission: 'media:edit' },
-  { href: '/admin/team', label: 'Team', permission: 'team:manage' },
-  { href: '/admin/sessions', label: 'Sessions', permission: 'team:manage' },
-  { href: '/admin/analytics', label: 'Analytics', permission: 'analytics:view' },
-  { href: '/admin/audit', label: 'Audit Log', permission: 'audit:view' },
-  { href: '/admin/manual', label: 'Manual' },
-  { href: '/admin/settings?tab=discussion', label: 'Comments', permission: 'settings:edit' }
-];
-
-const seoLinks: Array<{ href: string; label: string; permission?: AdminPermission }> = [
-  { href: '/admin/settings?tab=permalinks', label: 'Permalinks', permission: 'settings:edit' },
-  { href: '/admin/settings?tab=seo', label: 'Meta Tags', permission: 'settings:edit' },
-  { href: '/admin/settings?tab=sitemap', label: 'Sitemaps', permission: 'settings:edit' },
-  { href: '/admin/link-checker', label: 'Link Checker', permission: 'analytics:view' },
-  { href: '/admin/redirects', label: 'Redirects', permission: 'settings:edit' }
-];
-
 const storeLinks: Array<{ href: string; label: string; permission?: AdminPermission }> = [
   { href: '/admin/products', label: 'Products', permission: 'store:edit' },
+  { href: '/admin/product-categories', label: 'Product Categories', permission: 'store:edit' },
   { href: '/admin/orders', label: 'Orders', permission: 'store:manage_orders' },
-  { href: '/admin/customers', label: 'Customers', permission: 'store:manage_customers' }
+  { href: '/admin/customers', label: 'Customers', permission: 'store:manage_customers' },
+  { href: '/admin/coupons', label: 'Coupons', permission: 'store:edit' }
 ];
 
 function initialsForUser(user: AdminSessionUser) {
@@ -77,7 +58,7 @@ export function AdminNav({ user }: AdminNavProps) {
           <span>{siteProfile.brand.wordmark}</span>
         </Link>
 
-        <p className="admin-side-title">Core Content</p>
+        <p className="admin-side-title">Content</p>
         <ul className="admin-nav-list">
           <li>
             <Link href="/admin" className={`admin-nav-link ${isActive('/admin') ? 'active' : ''}`}>
@@ -102,47 +83,9 @@ export function AdminNav({ user }: AdminNavProps) {
                   Pages
                 </Link>
               </li>
-              <li>
-                <Link
-                  href="/admin/portfolio"
-                  className={`admin-nav-link ${isActive('/admin/portfolio') ? 'active' : ''}`}
-                >
-                  Portfolio
-                </Link>
-              </li>
             </>
           ) : null}
         </ul>
-
-        {siteManagementLinks.some((item) => canAccess(item.permission)) ? (
-          <>
-            <p className="admin-side-title">Site Management</p>
-            <ul className="admin-nav-list">
-              {siteManagementLinks.filter((item) => canAccess(item.permission)).map((item) => (
-                <li key={item.label}>
-                  <Link href={item.href} className={`admin-nav-link ${isActive(item.href) ? 'active' : ''}`}>
-                    {item.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </>
-        ) : null}
-
-        {seoLinks.some((item) => canAccess(item.permission)) ? (
-          <>
-            <p className="admin-side-title">Basic SEO</p>
-            <ul className="admin-nav-list">
-              {seoLinks.filter((item) => canAccess(item.permission)).map((item) => (
-                <li key={item.label}>
-                  <Link href={item.href} className={`admin-nav-link ${isActive(item.href) ? 'active' : ''}`}>
-                    {item.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </>
-        ) : null}
 
         {modules.ENABLE_STORE_MODULE && storeLinks.some((item) => canAccess(item.permission)) ? (
           <>
@@ -155,6 +98,78 @@ export function AdminNav({ user }: AdminNavProps) {
                   </Link>
                 </li>
               ))}
+            </ul>
+          </>
+        ) : null}
+
+        <p className="admin-side-title">Media</p>
+        <ul className="admin-nav-list">
+          {canAccess('media:edit') ? (
+            <li>
+              <Link href="/admin/media" className={`admin-nav-link ${isActive('/admin/media') ? 'active' : ''}`}>
+                Media Library
+              </Link>
+            </li>
+          ) : null}
+        </ul>
+
+        <p className="admin-side-title">Site</p>
+        <ul className="admin-nav-list">
+          {canAccess('settings:edit') ? (
+            <li>
+              <Link href="/admin/settings" className={`admin-nav-link ${isActive('/admin/settings') ? 'active' : ''}`}>
+                Settings
+              </Link>
+            </li>
+          ) : null}
+          {canAccess('taxonomy:edit') ? (
+            <li>
+              <Link href="/admin/categories" className={`admin-nav-link ${isActive('/admin/categories') ? 'active' : ''}`}>
+                Categories
+              </Link>
+            </li>
+          ) : null}
+          {canAccess('settings:edit') ? (
+            <li>
+              <Link href="/admin/redirects" className={`admin-nav-link ${isActive('/admin/redirects') ? 'active' : ''}`}>
+                Redirects
+              </Link>
+            </li>
+          ) : null}
+        </ul>
+
+        <p className="admin-side-title">Analytics &amp; Logs</p>
+        <ul className="admin-nav-list">
+          {canAccess('analytics:view') ? (
+            <li>
+              <Link href="/admin/analytics" className={`admin-nav-link ${isActive('/admin/analytics') ? 'active' : ''}`}>
+                Analytics
+              </Link>
+            </li>
+          ) : null}
+          {canAccess('audit:view') ? (
+            <li>
+              <Link href="/admin/audit" className={`admin-nav-link ${isActive('/admin/audit') ? 'active' : ''}`}>
+                Audit Log
+              </Link>
+            </li>
+          ) : null}
+        </ul>
+
+        {canAccess('team:manage') ? (
+          <>
+            <p className="admin-side-title">Team</p>
+            <ul className="admin-nav-list">
+              <li>
+                <Link href="/admin/team" className={`admin-nav-link ${isActive('/admin/team') ? 'active' : ''}`}>
+                  Team
+                </Link>
+              </li>
+              <li>
+                <Link href="/admin/sessions" className={`admin-nav-link ${isActive('/admin/sessions') ? 'active' : ''}`}>
+                  Sessions
+                </Link>
+              </li>
             </ul>
           </>
         ) : null}

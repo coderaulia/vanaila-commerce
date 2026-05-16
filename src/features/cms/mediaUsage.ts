@@ -2,7 +2,7 @@ import * as contentStore from './contentStore';
 import type { HomeBlock, LandingPage, MediaAsset } from './types';
 
 export type MediaUsageEntry = {
-  entityType: 'settings' | 'page' | 'blog_post' | 'portfolio_project';
+  entityType: 'settings' | 'page' | 'blog_post';
   entityId: string;
   label: string;
   field: string;
@@ -27,11 +27,10 @@ export async function getMediaUsage(mediaAsset: MediaAsset): Promise<MediaUsageE
   const assetUrl = mediaAsset.url.trim();
   if (!assetUrl) return [];
 
-  const [settings, pagesMap, posts, projects] = await Promise.all([
+  const [settings, pagesMap, posts] = await Promise.all([
     contentStore.getSettings(),
     contentStore.getPages(),
-    contentStore.getBlogPosts(true),
-    contentStore.getPortfolioProjects(true)
+    contentStore.getBlogPosts(true)
   ]);
 
   const usages: MediaUsageEntry[] = [];
@@ -97,39 +96,6 @@ export async function getMediaUsage(mediaAsset: MediaAsset): Promise<MediaUsageE
         href: `/admin/blog/${post.id}`
       });
     }
-  }
-
-  for (const project of projects) {
-    if (project.coverImage === assetUrl) {
-      usages.push({
-        entityType: 'portfolio_project',
-        entityId: project.id,
-        label: project.title,
-        field: 'Cover image',
-        href: `/admin/portfolio/${project.id}`
-      });
-    }
-
-    if (project.seo.socialImage === assetUrl) {
-      usages.push({
-        entityType: 'portfolio_project',
-        entityId: project.id,
-        label: project.title,
-        field: 'Social image',
-        href: `/admin/portfolio/${project.id}`
-      });
-    }
-
-    project.gallery.forEach((item, index) => {
-      if (item !== assetUrl) return;
-      usages.push({
-        entityType: 'portfolio_project',
-        entityId: project.id,
-        label: project.title,
-        field: `Gallery image ${index + 1}`,
-        href: `/admin/portfolio/${project.id}`
-      });
-    });
   }
 
   return usages;

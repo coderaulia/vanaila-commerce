@@ -4,7 +4,7 @@ import { assertAdminPermission } from '@/features/cms/adminAuth';
 import { listContentRevisions } from '@/features/cms/contentRevisions';
 import type { CmsRevisionEntityType } from '@/features/cms/types';
 
-const revisionEntityTypes: CmsRevisionEntityType[] = ['page', 'blog_post', 'portfolio_project', 'site_settings'];
+const revisionEntityTypes: CmsRevisionEntityType[] = ['page', 'blog_post', 'site_settings'];
 
 function parseEntityType(value: string | null): CmsRevisionEntityType | null {
   if (!value) return null;

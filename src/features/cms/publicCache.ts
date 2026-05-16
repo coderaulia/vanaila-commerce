@@ -9,7 +9,6 @@ export const cmsPublicCacheTags = {
   settings: 'cms-public:settings',
   pages: 'cms-public:pages',
   blog: 'cms-public:blog',
-  portfolio: 'cms-public:portfolio',
   media: 'cms-public:media'
 } as const;
 
@@ -120,24 +119,6 @@ const getCachedPublishedBlogPostBySlug = unstable_cache(
   }
 );
 
-const getCachedPublishedPortfolioProjects = unstable_cache(
-  async () => contentStore.getPortfolioProjects(false),
-  ['cms-public-portfolio-projects'],
-  {
-    tags: withCommonTags(cmsPublicCacheTags.portfolio, cmsPublicCacheTags.media),
-    revalidate: SCHEDULED_CONTENT_TTL
-  }
-);
-
-const getCachedPublishedPortfolioProjectBySlug = unstable_cache(
-  async (slug: string) => contentStore.getPortfolioProjectBySlug(slug),
-  ['cms-public-portfolio-project-by-slug'],
-  {
-    tags: withCommonTags(cmsPublicCacheTags.portfolio, cmsPublicCacheTags.media),
-    revalidate: SCHEDULED_CONTENT_TTL
-  }
-);
-
 export function getCachedPublicSiteSettings() {
   return withCacheFallback(getCachedSiteSettings, () => contentStore.getSettings());
 }
@@ -162,32 +143,11 @@ export function getCachedPublicBlogPostBySlug(slug: string) {
   return withCacheFallback(() => getCachedPublishedBlogPostBySlug(slug), () => contentStore.getBlogPostBySlug(slug));
 }
 
-export function getCachedPublicPortfolioProjects() {
-  return withCacheFallback(
-    getCachedPublishedPortfolioProjects,
-    () => contentStore.getPortfolioProjects(false)
-  );
-}
-
-export function getCachedPublicPortfolioProjectBySlug(slug: string) {
-  return withCacheFallback(
-    () => getCachedPublishedPortfolioProjectBySlug(slug),
-    () => contentStore.getPortfolioProjectBySlug(slug)
-  );
-}
-
 /** Scoped revalidation helpers — prefer these over revalidatePublicCmsCache for targeted mutations. */
 export function revalidateBlogCache() {
   safelyRevalidate(() => revalidateTag(cmsPublicCacheTags.blog, {}));
   safelyRevalidate(() => revalidatePath('/blog'));
   safelyRevalidate(() => revalidatePath('/blog/[slug]', 'page'));
-  safelyRevalidate(() => revalidatePath('/sitemap.xml'));
-}
-
-export function revalidatePortfolioCache() {
-  safelyRevalidate(() => revalidateTag(cmsPublicCacheTags.portfolio, {}));
-  safelyRevalidate(() => revalidatePath('/portfolio'));
-  safelyRevalidate(() => revalidatePath('/portfolio/[slug]', 'page'));
   safelyRevalidate(() => revalidatePath('/sitemap.xml'));
 }
 
@@ -216,10 +176,8 @@ export function revalidatePublicCmsCache() {
   safelyRevalidate(() => revalidatePath('/', 'layout'));
   safelyRevalidate(() => revalidatePath('/[slug]', 'page'));
   safelyRevalidate(() => revalidatePath('/blog/[slug]', 'page'));
-  safelyRevalidate(() => revalidatePath('/portfolio/[slug]', 'page'));
   safelyRevalidate(() => revalidatePath('/'));
   safelyRevalidate(() => revalidatePath('/blog'));
-  safelyRevalidate(() => revalidatePath('/portfolio'));
   safelyRevalidate(() => revalidatePath('/sitemap.xml'));
   safelyRevalidate(() => revalidatePath('/robots.txt'));
 }

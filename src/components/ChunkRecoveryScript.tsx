@@ -1,3 +1,7 @@
+'use client';
+
+import { useEffect } from 'react';
+
 const chunkRecoverySource = `
 (() => {
   const reloadKey = 'cms.chunk-reload-at';
@@ -48,12 +52,14 @@ const chunkRecoverySource = `
 `;
 
 export function ChunkRecoveryScript({ nonce }: { nonce?: string }) {
-  return (
-    <script
-      id="cms-chunk-recovery"
-      nonce={nonce}
-      dangerouslySetInnerHTML={{ __html: chunkRecoverySource }}
-      suppressHydrationWarning
-    />
-  );
+  useEffect(() => {
+    if (document.getElementById('cms-chunk-recovery')) return;
+    const el = document.createElement('script');
+    el.id = 'cms-chunk-recovery';
+    if (nonce) el.nonce = nonce;
+    el.textContent = chunkRecoverySource;
+    document.head.appendChild(el);
+  }, [nonce]);
+
+  return null;
 }

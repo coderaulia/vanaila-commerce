@@ -4,10 +4,9 @@ import { getContentHealthReport } from './contentHealth';
 import * as contentStore from './contentStore';
 import {
   getBlogPostPublicationLabel,
-  getLandingPagePublicationLabel,
-  getPortfolioProjectPublicationLabel
+  getLandingPagePublicationLabel
 } from './publicationState';
-import type { BlogPost, ContentHealthReport, LandingPage, PortfolioProject, SiteSettings } from './types';
+import type { BlogPost, ContentHealthReport, LandingPage, SiteSettings } from './types';
 
 export type ChecklistItem = {
   id: string;
@@ -20,7 +19,7 @@ export type ScheduledContentItem = {
   id: string;
   title: string;
   path: string;
-  type: 'page' | 'blog_post' | 'portfolio_project';
+  type: 'page' | 'blog_post';
   publishAt: string | null;
   unpublishAt: string | null;
   statusLabel: string;
@@ -29,7 +28,6 @@ export type ScheduledContentItem = {
 export type DashboardSummary = {
   pages: LandingPage[];
   blogPosts: BlogPost[];
-  portfolioProjects: PortfolioProject[];
   checklist: ChecklistItem[];
   scheduled: ScheduledContentItem[];
   auditLogs: AdminAuditLogEntry[];
@@ -41,7 +39,7 @@ function placeholderAsset(value: string) {
   return /placehold\.co|localhost:3000/i.test(value);
 }
 
-function buildChecklist(settings: SiteSettings, pages: LandingPage[], posts: BlogPost[], projects: PortfolioProject[]): ChecklistItem[] {
+function buildChecklist(settings: SiteSettings, pages: LandingPage[], posts: BlogPost[]): ChecklistItem[] {
   return [
     {
       id: 'site-url',
@@ -79,13 +77,13 @@ function buildChecklist(settings: SiteSettings, pages: LandingPage[], posts: Blo
     {
       id: 'first-publish',
       label: 'Publish at least one client-ready content item',
-      done: pages.some((page) => page.published) || posts.some((post) => post.status === 'published') || projects.some((project) => project.status === 'published'),
-      detail: 'Pages, posts, and portfolio items are still all in draft mode.'
+      done: pages.some((page) => page.published) || posts.some((post) => post.status === 'published'),
+      detail: 'Pages and posts are still all in draft mode.'
     }
   ];
 }
 
-function buildScheduledItems(pages: LandingPage[], posts: BlogPost[], projects: PortfolioProject[]): ScheduledContentItem[] {
+function buildScheduledItems(pages: LandingPage[], posts: BlogPost[]): ScheduledContentItem[] {
   return [
     ...pages
       .filter((page) => page.scheduledPublishAt || page.scheduledUnpublishAt)
@@ -108,17 +106,6 @@ function buildScheduledItems(pages: LandingPage[], posts: BlogPost[], projects: 
         publishAt: post.scheduledPublishAt ?? null,
         unpublishAt: post.scheduledUnpublishAt ?? null,
         statusLabel: getBlogPostPublicationLabel(post)
-      })),
-    ...projects
-      .filter((project) => project.scheduledPublishAt || project.scheduledUnpublishAt)
-      .map((project) => ({
-        id: project.id,
-        title: project.title,
-        path: `/portfolio/${project.seo.slug}`,
-        type: 'portfolio_project' as const,
-        publishAt: project.scheduledPublishAt ?? null,
-        unpublishAt: project.scheduledUnpublishAt ?? null,
-        statusLabel: getPortfolioProjectPublicationLabel(project)
       }))
   ].sort((a, b) => {
     const aTime = a.publishAt || a.unpublishAt || '';
@@ -128,10 +115,9 @@ function buildScheduledItems(pages: LandingPage[], posts: BlogPost[], projects: 
 }
 
 export async function getDashboardSummary(): Promise<DashboardSummary> {
-  const [pagesMap, blogPosts, portfolioProjects, settings, auditLogs, analytics, health] = await Promise.all([
+  const [pagesMap, blogPosts, settings, auditLogs, analytics, health] = await Promise.all([
     contentStore.getPages(),
     contentStore.getBlogPosts(true),
-    contentStore.getPortfolioProjects(true),
     contentStore.getSettings(),
     getAdminAuditLogs(8),
     getAnalyticsSummary(30),
@@ -142,9 +128,8 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
   return {
     pages,
     blogPosts,
-    portfolioProjects,
-    checklist: buildChecklist(settings, pages, blogPosts, portfolioProjects),
-    scheduled: buildScheduledItems(pages, blogPosts, portfolioProjects),
+    checklist: buildChecklist(settings, pages, blogPosts),
+    scheduled: buildScheduledItems(pages, blogPosts),
     auditLogs,
     analytics,
     health

@@ -1,7 +1,7 @@
 import { access } from 'node:fs/promises';
 import path from 'node:path';
 
-import { getBlogPostPublicationLabel, getLandingPagePublicationLabel, getPortfolioProjectPublicationLabel } from './publicationState';
+import { getBlogPostPublicationLabel, getLandingPagePublicationLabel } from './publicationState';
 import { nowIso } from './storeShared';
 import type {
   BlogPost,
@@ -9,12 +9,11 @@ import type {
   ContentHealthReport,
   HomeBlock,
   LandingPage,
-  PortfolioProject,
   SiteSettings
 } from './types';
 import * as contentStore from './contentStore';
 
-const RESERVED_PAGE_SLUGS = new Set(['admin', 'api', 'blog', 'portfolio']);
+const RESERVED_PAGE_SLUGS = new Set(['admin', 'api', 'blog']);
 
 type LinkReference = {
   href: string;
@@ -173,10 +172,9 @@ function collectSettingsLinks(settings: SiteSettings): LinkReference[] {
 
 function collectKnownPaths(
   pages: LandingPage[],
-  posts: BlogPost[],
-  projects: PortfolioProject[]
+  posts: BlogPost[]
 ) {
-  const publishedPaths = new Set<string>(['/', '/blog', '/portfolio']);
+  const publishedPaths = new Set<string>(['/', '/blog']);
   const draftOnlyPaths = new Set<string>();
 
   for (const page of pages) {
@@ -202,33 +200,21 @@ function collectKnownPaths(
     }
   }
 
-  for (const project of projects) {
-    const normalized = normalizeInternalPath(`/portfolio/${project.seo.slug}`);
-    if (!normalized) continue;
-    if (getPortfolioProjectPublicationLabel(project) === 'published') {
-      publishedPaths.add(normalized);
-      draftOnlyPaths.delete(normalized);
-    } else if (!publishedPaths.has(normalized)) {
-      draftOnlyPaths.add(normalized);
-    }
-  }
-
   return { publishedPaths, draftOnlyPaths };
 }
 
 export async function getContentHealthReport(): Promise<ContentHealthReport> {
-  const [settings, pagesMap, posts, projects, mediaAssets] = await Promise.all([
+  const [settings, pagesMap, posts, mediaAssets] = await Promise.all([
     contentStore.getSettings(),
     contentStore.getPages(),
     contentStore.getBlogPosts(true),
-    contentStore.getPortfolioProjects(true),
     contentStore.getMediaAssets()
   ]);
 
   const pages = Object.values(pagesMap);
   const items: ContentHealthItem[] = [];
   const mediaUrls = new Set(mediaAssets.map((asset) => asset.url.trim()).filter(Boolean));
-  const knownPaths = collectKnownPaths(pages, posts, projects);
+  const knownPaths = collectKnownPaths(pages, posts);
 
   if (!settings.seo.defaultMetaDescription.trim()) {
     addUniqueItem(items, {
@@ -328,19 +314,6 @@ export async function getContentHealthReport(): Promise<ContentHealthReport> {
     }
   }
 
-  for (const project of projects) {
-    if (!project.seo.metaTitle.trim() || !project.seo.metaDescription.trim()) {
-      addUniqueItem(items, {
-        id: `portfolio-seo-${project.id}`,
-        severity: 'warning',
-        category: 'seo',
-        label: `${project.title} is missing core SEO fields`,
-        detail: 'Meta title and meta description should both be set before publishing.',
-        href: `/admin/portfolio/${project.id}`
-      });
-    }
-  }
-
   const pageSlugMap = new Map<string, LandingPage[]>();
   for (const page of pages) {
     const slug = page.seo.slug.trim().toLowerCase();
@@ -383,27 +356,6 @@ export async function getContentHealthReport(): Promise<ContentHealthReport> {
     }
   }
 
-  const projectSlugMap = new Map<string, PortfolioProject[]>();
-  for (const project of projects) {
-    const slug = project.seo.slug.trim().toLowerCase();
-    if (!slug) continue;
-    projectSlugMap.set(slug, [...(projectSlugMap.get(slug) ?? []), project]);
-  }
-
-  for (const [slug, groupedProjects] of projectSlugMap) {
-    if (groupedProjects.length < 2) continue;
-    for (const project of groupedProjects) {
-      addUniqueItem(items, {
-        id: `portfolio-duplicate-slug-${project.id}`,
-        severity: 'error',
-        category: 'slugs',
-        label: `Duplicate portfolio slug "${slug}"`,
-        detail: 'Multiple portfolio projects share the same slug.',
-        href: `/admin/portfolio/${project.id}`
-      });
-    }
-  }
-
   const imageReferences: ImageReference[] = [
     {
       url: settings.organizationLogo.trim(),
@@ -428,23 +380,6 @@ export async function getContentHealthReport(): Promise<ContentHealthReport> {
         adminHref: `/admin/blog/${post.id}`
       }
     ]),
-    ...projects.flatMap((project) => [
-      {
-        url: project.coverImage.trim(),
-        label: `${project.title}: cover image`,
-        adminHref: `/admin/portfolio/${project.id}`
-      },
-      {
-        url: project.seo.socialImage.trim(),
-        label: `${project.title}: social image`,
-        adminHref: `/admin/portfolio/${project.id}`
-      },
-      ...project.gallery.map((url, index) => ({
-        url: url.trim(),
-        label: `${project.title}: gallery image ${index + 1}`,
-        adminHref: `/admin/portfolio/${project.id}`
-      }))
-    ])
   ].filter((reference) => reference.url);
 
   for (const reference of imageReferences) {

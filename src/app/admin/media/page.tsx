@@ -19,7 +19,7 @@ type DuplicateMediaResponse = {
 };
 
 type MediaUsageEntry = {
-  entityType: 'settings' | 'page' | 'blog_post' | 'portfolio_project';
+  entityType: 'settings' | 'page' | 'blog_post';
   entityId: string;
   label: string;
   field: string;

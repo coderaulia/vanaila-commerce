@@ -4,7 +4,6 @@ import type {
   CmsContent,
   HomeBlock,
   LandingPage,
-  PortfolioProject,
   SiteSettings
 } from './types';
 import { isObject, nowIso } from '@/lib/utils';
@@ -185,28 +184,6 @@ export function uniquePostSlug(
 
   let i = 2;
   while (isPostSlugTaken(posts, `${base}-${i}`, ignoreId)) {
-    i += 1;
-  }
-
-  return `${base}-${i}`;
-}
-
-export function isPortfolioSlugTaken(projects: PortfolioProject[], slug: string, ignoreId?: string) {
-  return projects.some((project) => project.seo.slug === slug && project.id !== ignoreId);
-}
-
-export function uniquePortfolioSlug(
-  projects: PortfolioProject[],
-  title: string,
-  requestedSlug?: string,
-  ignoreId?: string
-) {
-  const source = requestedSlug && requestedSlug.length > 0 ? requestedSlug : title;
-  const base = normalizeSlug(source) || 'project';
-  if (!isPortfolioSlugTaken(projects, base, ignoreId)) return base;
-
-  let i = 2;
-  while (isPortfolioSlugTaken(projects, `${base}-${i}`, ignoreId)) {
     i += 1;
   }
 

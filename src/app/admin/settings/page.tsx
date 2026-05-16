@@ -1359,19 +1359,6 @@ function SettingsEditor() {
               />
             </label>
             <label>
-              Include portfolio
-              <input
-                type="checkbox"
-                checked={settings.sitemap.includePortfolio}
-                onChange={(event) =>
-                  setSettings({
-                    ...settings,
-                    sitemap: { ...settings.sitemap, includePortfolio: event.target.checked }
-                  })
-                }
-              />
-            </label>
-            <label>
               Include last modified date
               <input
                 type="checkbox"

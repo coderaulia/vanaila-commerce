@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 
-import { assertAdminPermission, getAdminSession, logAdminAuditEvent } from '@/features/cms/adminAuth';
+import { assertAdminPermission, logAdminAuditEvent } from '@/features/cms/adminAuth';
 import { modules } from '@/config/modules';
 import { queryProducts, createProduct } from '@/features/commerce/store';
 import type { Product } from '@/features/commerce/types';
@@ -10,8 +10,8 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Store module disabled' }, { status: 404 });
   }
 
-  const session = await getAdminSession(request);
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const auth = await assertAdminPermission(request, 'store:edit');
+  if ('error' in auth) return auth.error;
 
   const { searchParams } = new URL(request.url);
   const status = (searchParams.get('status') ?? 'all') as 'all' | 'draft' | 'active' | 'archived';

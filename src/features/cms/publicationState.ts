@@ -1,4 +1,4 @@
-import type { BlogPost, LandingPage, PortfolioProject, PublicationStatusLabel } from './types';
+import type { BlogPost, LandingPage, PublicationStatusLabel } from './types';
 
 type ScheduledContent = {
   scheduledPublishAt?: string | null;
@@ -98,16 +98,8 @@ export function isBlogPostLive(post: BlogPost, now = Date.now()) {
   return isStatusContentLive(post, now);
 }
 
-export function isPortfolioProjectLive(project: PortfolioProject, now = Date.now()) {
-  return isStatusContentLive(project, now);
-}
-
 export function getBlogPostPublicationLabel(post: BlogPost, now = Date.now()) {
   return getStatusPublicationLabel(post, now);
-}
-
-export function getPortfolioProjectPublicationLabel(project: PortfolioProject, now = Date.now()) {
-  return getStatusPublicationLabel(project, now);
 }
 
 export function getLandingPagePublicationLabel(page: LandingPage, now = Date.now()) {

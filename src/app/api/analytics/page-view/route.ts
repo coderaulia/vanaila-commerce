@@ -16,7 +16,6 @@ function sanitizePath(value: unknown) {
 
 function entityTypeForPath(path: string) {
   if (path.startsWith('/blog/')) return 'blog_post';
-  if (path.startsWith('/portfolio/')) return 'portfolio_project';
   return 'page';
 }
 

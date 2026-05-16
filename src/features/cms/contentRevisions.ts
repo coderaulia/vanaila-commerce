@@ -18,7 +18,6 @@ import type {
   CmsRevisionEntityType,
   CmsRevisionPayload,
   LandingPage,
-  PortfolioProject,
   SiteSettings
 } from './types';
 
@@ -86,17 +85,13 @@ function buildRevisionSummary(entityType: CmsRevisionEntityType, payload: CmsRev
       const post = payload as BlogPost;
       return `${post.title || 'Untitled post'} • /blog/${post.seo.slug}`;
     }
-    case 'portfolio_project': {
-      const project = payload as PortfolioProject;
-      return `${project.title || 'Untitled project'} • /portfolio/${project.seo.slug}`;
-    }
     case 'site_settings': {
       const settings = payload as SiteSettings;
       return `${settings.siteName || settings.general.siteName || 'Site settings'} • ${settings.general.baseUrl || 'Base URL not set'}`;
     }
     case 'full_site': {
       const content = payload as CmsContent;
-      return `${Object.keys(content.pages).length} pages • ${content.blogPosts.length} posts • ${content.portfolioProjects.length} portfolio`;
+      return `${Object.keys(content.pages).length} pages • ${content.blogPosts.length} posts`;
     }
     default:
       return 'Content revision';
@@ -223,8 +218,6 @@ function getCurrentEntityPayload(
       return content.pages[entityId as keyof typeof content.pages] ?? null;
     case 'blog_post':
       return content.blogPosts.find((post) => post.id === entityId) ?? null;
-    case 'portfolio_project':
-      return content.portfolioProjects.find((project) => project.id === entityId) ?? null;
     case 'site_settings':
       return content.settings;
     case 'full_site':
@@ -260,17 +253,6 @@ function applyEntityPayload(
         blogPosts[index] = post;
       }
       return { ...content, blogPosts };
-    }
-    case 'portfolio_project': {
-      const project = payload as PortfolioProject;
-      const index = content.portfolioProjects.findIndex((entry) => entry.id === entityId);
-      const portfolioProjects = [...content.portfolioProjects];
-      if (index === -1) {
-        portfolioProjects.unshift(project);
-      } else {
-        portfolioProjects[index] = project;
-      }
-      return { ...content, portfolioProjects };
     }
     case 'site_settings':
       return { ...content, settings: payload as SiteSettings };

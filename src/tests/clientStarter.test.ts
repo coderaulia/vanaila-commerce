@@ -39,16 +39,7 @@ describe('client starter bootstrap', () => {
     expect(starter.settings.siteName).toBe('Acme Studio');
     expect(starter.blogPosts).toHaveLength(0);
     expect(starter.portfolioProjects).toHaveLength(0);
-    expect(Object.keys(starter.pages)).toEqual([
-      'home',
-      'service',
-      'service-website-development',
-      'service-custom-business-tools',
-      'service-secure-online-shops',
-      'service-mobile-business-app',
-      'service-official-business-email',
-      'contact'
-    ]);
+    expect(Object.keys(starter.pages)).toEqual(['home', 'contact']);
     expect(starter.settings.navigation.headerLinks.map((link) => link.href)).toEqual([
       '/',
       '/service'
@@ -59,7 +50,6 @@ describe('client starter bootstrap', () => {
       '/contact'
     ]);
     expect(starter.settings.sitemap.includePosts).toBe(false);
-    expect(starter.settings.sitemap.includePortfolio).toBe(false);
   });
 
   it('updates brand tokens in theme source files', () => {
@@ -100,8 +90,8 @@ describe('client starter bootstrap', () => {
     });
 
     expect(config.siteName).toBe('Searchlane Studio');
-    expect(config.modules).toEqual(['services', 'blog']);
-    expect(config.pages).toEqual(['about', 'service', 'contact']);
+    expect(config.modules).toEqual(['blog', 'services']);
+    expect(config.pages).toEqual(['about', 'contact', 'service']);
     expect(config.fixture).toBe('blog-seo');
   });
 
@@ -116,7 +106,7 @@ describe('client starter bootstrap', () => {
 
     const caseStudyStarter = buildFixtureSeedContent(defaultContent, 'portfolio-case-studies');
     expect(caseStudyStarter.settings.navigation.headerLinks.some((link) => link.label === 'Case Studies')).toBe(true);
-    expect(caseStudyStarter.portfolioProjects.length).toBeGreaterThan(0);
+    expect(caseStudyStarter.portfolioProjects).toHaveLength(0);
     expect(caseStudyStarter.blogPosts).toHaveLength(0);
   });
 

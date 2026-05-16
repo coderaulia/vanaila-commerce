@@ -13,7 +13,6 @@ describe('content store defaults', () => {
 
   it('keeps legacy sections for non-home pages', () => {
     expect(defaultContent.pages.about.sections.length).toBeGreaterThan(0);
-    expect(defaultContent.pages.service.sections.length).toBeGreaterThan(0);
     expect(defaultContent.pages.contact.sections.length).toBeGreaterThan(0);
   });
 });

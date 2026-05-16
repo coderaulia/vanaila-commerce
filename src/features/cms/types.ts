@@ -1,27 +1,11 @@
 export type PageId =
   | 'home'
   | 'about'
-  | 'service'
-  | 'product-hris'
-  | 'contact'
-  | 'partnership'
-  | 'service-website-development'
-  | 'service-custom-business-tools'
-  | 'service-secure-online-shops'
-  | 'service-mobile-business-app'
-  | 'service-official-business-email';
-
-export type ServiceDetailPageId =
-  | 'service-website-development'
-  | 'service-custom-business-tools'
-  | 'service-secure-online-shops'
-  | 'service-mobile-business-app'
-  | 'service-official-business-email';
+  | 'contact';
 
 export type SectionLayout = 'stacked' | 'split';
 
 export type BlogStatus = 'draft' | 'published';
-export type PortfolioStatus = 'draft' | 'published';
 export type PublicationStatusLabel = 'draft' | 'scheduled' | 'published' | 'scheduled-unpublish' | 'expired';
 export type AdminRole = 'super_admin' | 'admin' | 'editor' | 'analyst' | 'store_manager';
 export type AdminPermission =
@@ -199,31 +183,6 @@ export type BlogPost = {
   seo: SeoFields;
 };
 
-export type PortfolioProject = {
-  id: string;
-  title: string;
-  summary: string;
-  challenge: string;
-  solution: string;
-  outcome: string;
-  clientName: string;
-  serviceType: string;
-  industry: string;
-  projectUrl: string;
-  relatedServicePageIds: ServiceDetailPageId[];
-  coverImage: string;
-  gallery: string[];
-  tags: string[];
-  featured: boolean;
-  status: PortfolioStatus;
-  sortOrder: number;
-  publishedAt: string | null;
-  scheduledPublishAt?: string | null;
-  scheduledUnpublishAt?: string | null;
-  updatedAt: string;
-  seo: SeoFields;
-};
-
 export type Category = {
   id: string;
   name: string;
@@ -247,19 +206,6 @@ export type MediaAsset = {
   storageKey: string | null;
   createdAt: string;
   updatedAt: string;
-};
-
-export type ContactSubmissionStatus = 'new' | 'in_review' | 'closed';
-
-export type ContactSubmission = {
-  id: string;
-  name: string;
-  company: string;
-  email: string;
-  serviceCategory: string;
-  projectOverview: string;
-  status: ContactSubmissionStatus;
-  createdAt: string;
 };
 
 export type GeneralSettings = {
@@ -381,7 +327,6 @@ export type SitemapSettings = {
   enabled: boolean;
   includePages: boolean;
   includePosts: boolean;
-  includePortfolio: boolean;
   includeLastModified: boolean;
 };
 
@@ -411,14 +356,14 @@ export type CmsContent = {
   settings: SiteSettings;
   pages: Record<PageId, LandingPage>;
   blogPosts: BlogPost[];
-  portfolioProjects: PortfolioProject[];
+  portfolioProjects: never[];
   categories: Category[];
   mediaAssets: MediaAsset[];
 };
 
-export type CmsRevisionEntityType = 'page' | 'blog_post' | 'portfolio_project' | 'site_settings' | 'full_site';
+export type CmsRevisionEntityType = 'page' | 'blog_post' | 'site_settings' | 'full_site';
 
-export type CmsRevisionPayload = LandingPage | BlogPost | PortfolioProject | SiteSettings | CmsContent;
+export type CmsRevisionPayload = LandingPage | BlogPost | SiteSettings | CmsContent;
 
 export type CmsContentRevision = {
   id: string;

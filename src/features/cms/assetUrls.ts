@@ -1,6 +1,6 @@
 import { env } from '@/services/env';
 
-import type { BlogPost, CmsContent, HomeBlock, LandingPage, MediaAsset, PortfolioProject, SeoFields, SiteSettings } from './types';
+import type { BlogPost, CmsContent, HomeBlock, LandingPage, MediaAsset, SeoFields, SiteSettings } from './types';
 
 function mediaBaseUrl() {
   return env.mediaPublicBaseUrl.trim().replace(/\/+$/, '');
@@ -18,7 +18,7 @@ export function resolveStoredAssetUrl(value: string) {
     const parsed = new URL(raw, env.siteUrl);
     const normalizedPath = parsed.pathname.replace(/^\/+/, '');
 
-    if (!normalizedPath.startsWith('media/') && !normalizedPath.startsWith('portfolio/')) {
+    if (!normalizedPath.startsWith('media/')) {
       return raw;
     }
 
@@ -66,15 +66,6 @@ export function resolveBlogPostAssetUrls(post: BlogPost): BlogPost {
   };
 }
 
-export function resolvePortfolioProjectAssetUrls(project: PortfolioProject): PortfolioProject {
-  return {
-    ...project,
-    coverImage: resolveStoredAssetUrl(project.coverImage),
-    gallery: project.gallery.map(resolveStoredAssetUrl),
-    seo: resolveSeoFields(project.seo)
-  };
-}
-
 export function resolveMediaAssetUrls(asset: MediaAsset): MediaAsset {
   return {
     ...asset,
@@ -108,7 +99,7 @@ export function resolveCmsContentAssetUrls(content: CmsContent): CmsContent {
       Object.entries(content.pages).map(([id, page]) => [id, resolveLandingPageAssetUrls(page)])
     ) as CmsContent['pages'],
     blogPosts: content.blogPosts.map(resolveBlogPostAssetUrls),
-    portfolioProjects: content.portfolioProjects.map(resolvePortfolioProjectAssetUrls),
+    portfolioProjects: [],
     mediaAssets: content.mediaAssets.map(resolveMediaAssetUrls)
   };
 }

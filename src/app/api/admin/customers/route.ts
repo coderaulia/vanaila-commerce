@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 
-import { getAdminSession } from '@/features/cms/adminAuth';
+import { assertAdminPermission } from '@/features/cms/adminAuth';
 import { modules } from '@/config/modules';
 import { queryCustomers } from '@/features/commerce/store';
 
@@ -9,8 +9,8 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Store module disabled' }, { status: 404 });
   }
 
-  const session = await getAdminSession(request);
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const auth = await assertAdminPermission(request, 'store:manage_customers');
+  if ('error' in auth) return auth.error;
 
   const { searchParams } = new URL(request.url);
   const q = searchParams.get('q') ?? undefined;

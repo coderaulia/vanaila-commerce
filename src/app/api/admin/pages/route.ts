@@ -13,14 +13,6 @@ export async function GET(request: Request) {
   const ordered = [
     'home',
     'about',
-    'service',
-    'product-hris',
-    'service-website-development',
-    'service-custom-business-tools',
-    'service-secure-online-shops',
-    'service-mobile-business-app',
-    'service-official-business-email',
-    'partnership',
     'contact'
   ]
     .map((id) => pages[id as keyof typeof pages])

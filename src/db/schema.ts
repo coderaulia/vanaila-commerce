@@ -7,8 +7,6 @@ import type {
   HomeBlock,
   PageId,
   PageSection,
-  PortfolioProject,
-  PortfolioStatus,
   SeoFields,
   SiteSettings
 } from '@/features/cms/types';
@@ -63,41 +61,6 @@ export const blogPostsTable = pgTable(
   })
 );
 
-export const portfolioProjectsTable = pgTable(
-  'portfolio_projects',
-  {
-    id: text('id').primaryKey(),
-    title: text('title').notNull(),
-    slug: text('slug').notNull(),
-    summary: text('summary').notNull(),
-    challenge: text('challenge').notNull(),
-    solution: text('solution').notNull(),
-    outcome: text('outcome').notNull(),
-    clientName: text('client_name').notNull(),
-    serviceType: text('service_type').notNull(),
-    industry: text('industry').notNull(),
-    projectUrl: text('project_url').notNull(),
-    relatedServicePageIds: jsonb('related_service_page_ids').$type<PortfolioProject['relatedServicePageIds']>().notNull(),
-    coverImage: text('cover_image').notNull(),
-    gallery: jsonb('gallery').$type<string[]>().notNull(),
-    tags: jsonb('tags').$type<string[]>().notNull(),
-    featured: boolean('featured').notNull(),
-    status: text('status').$type<PortfolioStatus>().notNull(),
-    sortOrder: integer('sort_order').notNull(),
-    publishedAt: timestamp('published_at', { withTimezone: true, mode: 'string' }),
-    scheduledPublishAt: timestamp('scheduled_publish_at', { withTimezone: true, mode: 'string' }),
-    scheduledUnpublishAt: timestamp('scheduled_unpublish_at', { withTimezone: true, mode: 'string' }),
-    updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'string' }).notNull(),
-    seo: jsonb('seo').$type<PortfolioProject['seo']>().notNull()
-  },
-  (table) => ({
-    slugUnique: uniqueIndex('portfolio_projects_slug_unique').on(table.slug),
-    statusIdx: index('portfolio_projects_status_idx').on(table.status),
-    featuredIdx: index('portfolio_projects_featured_idx').on(table.featured),
-    sortOrderIdx: index('portfolio_projects_sort_order_idx').on(table.sortOrder)
-  })
-);
-
 export const categoriesTable = pgTable(
   'categories',
   {
@@ -122,34 +85,6 @@ export const postCategoriesTable = pgTable('post_categories', {
     postIdIdx: index('post_categories_post_id_idx').on(table.postId),
     categoryIdIdx: index('post_categories_category_id_idx').on(table.categoryId),
     pk: primaryKey({ columns: [table.postId, table.categoryId] })
-  })
-);
-
-export const portfolioTagsTable = pgTable(
-  'portfolio_tags',
-  {
-    id: text('id').primaryKey(),
-    name: text('name').notNull(),
-    slug: text('slug').notNull(),
-    createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' }).notNull(),
-    updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'string' }).notNull()
-  },
-  (table) => ({
-    slugUnique: uniqueIndex('portfolio_tags_slug_unique').on(table.slug)
-  })
-);
-
-export const portfolioProjectTagsTable = pgTable(
-  'portfolio_project_tags',
-  {
-    projectId: text('project_id').notNull(),
-    tagId: text('tag_id').notNull(),
-    createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' }).notNull()
-  },
-  (table) => ({
-    projectIdIdx: index('portfolio_project_tags_project_id_idx').on(table.projectId),
-    tagIdIdx: index('portfolio_project_tags_tag_id_idx').on(table.tagId),
-    pk: primaryKey({ columns: [table.projectId, table.tagId] })
   })
 );
 
@@ -178,17 +113,6 @@ export const commentsTable = pgTable('comments', {
   status: text('status').notNull(),
   createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' }).notNull(),
   reviewedAt: timestamp('reviewed_at', { withTimezone: true, mode: 'string' })
-});
-
-export const contactSubmissionsTable = pgTable('contact_submissions', {
-  id: text('id').primaryKey(),
-  name: text('name').notNull(),
-  company: text('company').notNull(),
-  email: text('email').notNull(),
-  serviceCategory: text('service_category').notNull(),
-  projectOverview: text('project_overview').notNull(),
-  status: text('status').notNull(),
-  createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' }).notNull()
 });
 
 export const adminUsersTable = pgTable(

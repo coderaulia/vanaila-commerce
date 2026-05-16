@@ -3,7 +3,6 @@ import {
   resolveCmsContentAssetUrls,
   resolveLandingPageAssetUrls,
   resolveMediaAssetUrls,
-  resolvePortfolioProjectAssetUrls,
   resolveSettingsAssetUrls
 } from './assetUrls';
 import { loadCmsStoreModules, readRawCmsContent, writeRawCmsContent } from './storeAdapter';
@@ -14,10 +13,9 @@ import type {
   LandingPage,
   MediaAsset,
   PageId,
-  PortfolioProject,
   SiteSettings
 } from './types';
-import type { BlogQueryInput, PortfolioQueryInput } from './storeTypes';
+import type { BlogQueryInput } from './storeTypes';
 
 export async function readContent(): Promise<CmsContent> {
   return resolveCmsContentAssetUrls(await readRawCmsContent());
@@ -63,7 +61,7 @@ export async function getBlogPosts(includeDrafts = false): Promise<BlogPost[]> {
   return posts.map(resolveBlogPostAssetUrls);
 }
 
-export type { BlogQueryInput, PortfolioQueryInput } from './storeTypes';
+export type { BlogQueryInput } from './storeTypes';
 
 export async function queryBlogPosts(input: BlogQueryInput) {
   const { contentStore } = await loadCmsStoreModules();
@@ -104,68 +102,6 @@ export async function deleteBlogPost(id: string): Promise<boolean> {
 export async function setPostStatus(id: string, status: 'draft' | 'published'): Promise<BlogPost | null> {
   const { contentStore } = await loadCmsStoreModules();
   return contentStore.setPostStatus(id, status);
-}
-
-export async function getPortfolioProjects(includeDrafts = false): Promise<PortfolioProject[]> {
-  const { contentStore } = await loadCmsStoreModules();
-  const projects = await contentStore.getPortfolioProjects(includeDrafts);
-  return projects.map(resolvePortfolioProjectAssetUrls);
-}
-
-export async function queryPortfolioProjects(input: PortfolioQueryInput) {
-  const { contentStore } = await loadCmsStoreModules();
-  const payload = await contentStore.queryPortfolioProjects(input);
-  return {
-    ...payload,
-    projects: payload.projects.map(resolvePortfolioProjectAssetUrls)
-  };
-}
-
-export async function getPortfolioProjectById(id: string): Promise<PortfolioProject | null> {
-  const { contentStore } = await loadCmsStoreModules();
-  const project = await contentStore.getPortfolioProjectById(id);
-  return project ? resolvePortfolioProjectAssetUrls(project) : null;
-}
-
-export async function getPortfolioProjectBySlug(slug: string): Promise<PortfolioProject | null> {
-  const { contentStore } = await loadCmsStoreModules();
-  const project = await contentStore.getPortfolioProjectBySlug(slug);
-  return project ? resolvePortfolioProjectAssetUrls(project) : null;
-}
-
-export async function createPortfolioProject(
-  payload?: Partial<PortfolioProject>
-): Promise<PortfolioProject> {
-  const { contentStore } = await loadCmsStoreModules();
-  return contentStore.createPortfolioProject(payload);
-}
-
-export async function updatePortfolioProject(
-  id: string,
-  payload: PortfolioProject
-): Promise<PortfolioProject | null> {
-  const { contentStore } = await loadCmsStoreModules();
-  return contentStore.updatePortfolioProject(id, payload);
-}
-
-export async function deletePortfolioProject(id: string): Promise<boolean> {
-  const { contentStore } = await loadCmsStoreModules();
-  return contentStore.deletePortfolioProject(id);
-}
-
-export async function reorderPortfolioProjects(
-  orderedIds: string[]
-): Promise<{ updated: number }> {
-  const { contentStore } = await loadCmsStoreModules();
-  return contentStore.reorderPortfolioProjects(orderedIds);
-}
-
-export async function setPortfolioProjectStatus(
-  id: string,
-  status: 'draft' | 'published'
-): Promise<PortfolioProject | null> {
-  const { contentStore } = await loadCmsStoreModules();
-  return contentStore.setPortfolioProjectStatus(id, status);
 }
 
 export async function getCategories(): Promise<Category[]> {

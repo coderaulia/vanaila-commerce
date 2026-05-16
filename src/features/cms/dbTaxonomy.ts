@@ -3,20 +3,16 @@ import { inArray } from 'drizzle-orm';
 import { getDb } from '@/db/client';
 import {
   categoriesTable,
-  portfolioProjectTagsTable,
-  portfolioTagsTable,
   postCategoriesTable
 } from '@/db/schema';
 
 import { normalizeCategoryRecord } from './collectionShared';
 import { nowIso, normalizeSlug } from './storeShared';
-import type { BlogPost, Category, PortfolioProject } from './types';
+import type { BlogPost, Category } from './types';
 
 type PostTagShape = Pick<BlogPost, 'id' | 'tags'>;
-type PortfolioTagShape = Pick<PortfolioProject, 'id' | 'tags'>;
 
 let warnedMissingBlogTaxonomyTables = false;
-let warnedMissingPortfolioTaxonomyTables = false;
 
 function extractErrorCode(error: unknown): string | undefined {
   if (!error || typeof error !== 'object') return undefined;
@@ -36,30 +32,12 @@ function warnMissingBlogTaxonomyTables() {
   console.warn('Blog taxonomy tables are not available yet; falling back to legacy post tag data.');
 }
 
-function warnMissingPortfolioTaxonomyTables() {
-  if (warnedMissingPortfolioTaxonomyTables) return;
-  warnedMissingPortfolioTaxonomyTables = true;
-  console.warn('Portfolio taxonomy tables are not available yet; falling back to legacy project tag data.');
-}
-
 async function withBlogTaxonomyFallback<T>(task: () => Promise<T>, fallback: T): Promise<T> {
   try {
     return await task();
   } catch (error) {
     if (isMissingRelationError(error)) {
       warnMissingBlogTaxonomyTables();
-      return fallback;
-    }
-    throw error;
-  }
-}
-
-async function withPortfolioTaxonomyFallback<T>(task: () => Promise<T>, fallback: T): Promise<T> {
-  try {
-    return await task();
-  } catch (error) {
-    if (isMissingRelationError(error)) {
-      warnMissingPortfolioTaxonomyTables();
       return fallback;
     }
     throw error;
@@ -76,22 +54,6 @@ function slugToName(slug: string) {
 
 function uniqueCategorySlugs(tags: string[]) {
   return Array.from(new Set(tags.map((tag) => normalizeSlug(tag)).filter(Boolean)));
-}
-
-function normalizePortfolioTagEntries(tags: string[]) {
-  const bySlug = new Map<string, string>();
-
-  for (const tag of tags) {
-    const name = tag.trim();
-    const slug = normalizeSlug(name);
-    if (!name || !slug || bySlug.has(slug)) {
-      continue;
-    }
-
-    bySlug.set(slug, name);
-  }
-
-  return Array.from(bySlug.entries()).map(([slug, name]) => ({ slug, name }));
 }
 
 async function readCategoriesBySlug(slugs: string[]) {
@@ -221,119 +183,3 @@ export async function mapBlogPostCategorySlugs(postIds: string[]) {
   }, byPostId);
 }
 
-async function ensurePortfolioTagsForProjects(projects: PortfolioTagShape[]) {
-  const requested = Array.from(
-    new Map(
-      projects
-        .flatMap((project) => normalizePortfolioTagEntries(project.tags))
-        .map((entry) => [entry.slug, entry])
-    ).values()
-  );
-
-  if (requested.length === 0) {
-    return new Map<string, typeof portfolioTagsTable.$inferSelect>();
-  }
-
-  const existingRows = await getDb()
-    .select()
-    .from(portfolioTagsTable)
-    .where(inArray(portfolioTagsTable.slug, requested.map((entry) => entry.slug)));
-  const tagsBySlug = new Map(existingRows.map((row) => [row.slug, row]));
-  const timestamp = nowIso();
-
-  const missing = requested
-    .filter((entry) => !tagsBySlug.has(entry.slug))
-    .map((entry) => ({
-      id: `portfolio-tag-${entry.slug}`,
-      name: entry.name,
-      slug: entry.slug,
-      createdAt: timestamp,
-      updatedAt: timestamp
-    }));
-
-  if (missing.length > 0) {
-    await getDb().insert(portfolioTagsTable).values(missing).onConflictDoNothing();
-    for (const tag of missing) {
-      tagsBySlug.set(tag.slug, tag);
-    }
-  }
-
-  return tagsBySlug;
-}
-
-export async function syncPortfolioProjectTagLinks(projects: PortfolioTagShape[]) {
-  if (projects.length === 0) {
-    return;
-  }
-
-  await withPortfolioTaxonomyFallback(async () => {
-    const tagsBySlug = await ensurePortfolioTagsForProjects(projects);
-    const projectIds = projects.map((project) => project.id);
-
-    await getDb().delete(portfolioProjectTagsTable).where(inArray(portfolioProjectTagsTable.projectId, projectIds));
-
-    const rows = projects.flatMap((project) =>
-      normalizePortfolioTagEntries(project.tags)
-        .map((entry) => tagsBySlug.get(entry.slug))
-        .filter((tag): tag is typeof portfolioTagsTable.$inferSelect => Boolean(tag))
-        .map((tag) => ({
-          projectId: project.id,
-          tagId: tag.id,
-          createdAt: nowIso()
-        }))
-    );
-
-    if (rows.length > 0) {
-      await getDb().insert(portfolioProjectTagsTable).values(rows).onConflictDoNothing();
-    }
-  }, undefined);
-}
-
-export async function deletePortfolioProjectTagLinks(projectIds: string[]) {
-  if (projectIds.length === 0) {
-    return;
-  }
-
-  await withPortfolioTaxonomyFallback(
-    () => getDb().delete(portfolioProjectTagsTable).where(inArray(portfolioProjectTagsTable.projectId, projectIds)),
-    undefined
-  );
-}
-
-export async function mapPortfolioProjectTags(projectIds: string[]) {
-  const byProjectId = new Map<string, string[]>();
-  if (projectIds.length === 0) {
-    return byProjectId;
-  }
-
-  return withPortfolioTaxonomyFallback(async () => {
-    const links = await getDb()
-      .select()
-      .from(portfolioProjectTagsTable)
-      .where(inArray(portfolioProjectTagsTable.projectId, projectIds));
-    if (links.length === 0) {
-      return byProjectId;
-    }
-
-    const tagIds = Array.from(new Set(links.map((row) => row.tagId)));
-    const tags = await getDb().select().from(portfolioTagsTable).where(inArray(portfolioTagsTable.id, tagIds));
-    const tagsById = new Map(tags.map((row) => [row.id, row.name]));
-
-    for (const link of links) {
-      const name = tagsById.get(link.tagId);
-      if (!name) {
-        continue;
-      }
-
-      const current = byProjectId.get(link.projectId) ?? [];
-      current.push(name);
-      byProjectId.set(link.projectId, current);
-    }
-
-    for (const [projectId, names] of byProjectId.entries()) {
-      byProjectId.set(projectId, Array.from(new Set(names)).sort((a, b) => a.localeCompare(b)));
-    }
-
-    return byProjectId;
-  }, byProjectId);
-}

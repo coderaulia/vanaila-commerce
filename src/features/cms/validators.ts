@@ -1,8 +1,6 @@
 import type {
   BlogPost,
   Category,
-  ContactSubmission,
-  ContactSubmissionStatus,
   CtaStyleToken,
   HomeBlock,
   HomeBlockType,
@@ -10,37 +8,13 @@ import type {
   LandingPage,
   MediaAsset,
   PageId,
-  PortfolioProject,
-  PortfolioStatus,
   SiteSettings
 } from './types';
-import { isServiceDetailPageId } from './servicePages';
 import { asBoolean, asString, isObject } from '@/lib/utils';
 
-const PAGE_IDS: PageId[] = [
-  'home',
-  'about',
-  'service',
-  'product-hris',
-  'contact',
-  'partnership',
-  'service-website-development',
-  'service-custom-business-tools',
-  'service-secure-online-shops',
-  'service-mobile-business-app',
-  'service-official-business-email'
-];
+const PAGE_IDS: PageId[] = ['home', 'about', 'contact'];
 const HOME_THEMES: HomeThemeToken[] = ['light', 'blue-soft', 'mist'];
 const CTA_STYLES: CtaStyleToken[] = ['primary', 'secondary', 'ghost'];
-const CONTACT_SUBMISSION_STATUSES: ContactSubmissionStatus[] = ['new', 'in_review', 'closed'];
-const PORTFOLIO_STATUSES: PortfolioStatus[] = ['draft', 'published'];
-const contactSubmissionMaxLengths = {
-  name: 120,
-  company: 160,
-  email: 254,
-  serviceCategory: 200,
-  projectOverview: 5000
-} as const;
 const HOME_BLOCK_TYPES: HomeBlockType[] = [
   'hero',
   'value_triplet',
@@ -91,12 +65,6 @@ const isHomeTheme = (value: string): value is HomeThemeToken =>
 const isCtaStyle = (value: string): value is CtaStyleToken =>
   CTA_STYLES.includes(value as CtaStyleToken);
 
-const isContactSubmissionStatus = (value: string): value is ContactSubmissionStatus =>
-  CONTACT_SUBMISSION_STATUSES.includes(value as ContactSubmissionStatus);
-
-const isPortfolioStatus = (value: string): value is PortfolioStatus =>
-  PORTFOLIO_STATUSES.includes(value as PortfolioStatus);
-
 const normalizeSlugValue = (value: string) =>
   value
     .trim()
@@ -143,22 +111,6 @@ const asTheme = (value: unknown): HomeThemeToken => {
 const asCtaStyle = (value: unknown, fallback: CtaStyleToken = 'primary'): CtaStyleToken => {
   const token = asString(value);
   return isCtaStyle(token) ? token : fallback;
-};
-
-const asContactSubmissionStatus = (
-  value: unknown,
-  fallback: ContactSubmissionStatus = 'new'
-): ContactSubmissionStatus => {
-  const token = asString(value);
-  return isContactSubmissionStatus(token) ? token : fallback;
-};
-
-const asPortfolioStatus = (
-  value: unknown,
-  fallback: PortfolioStatus = 'draft'
-): PortfolioStatus => {
-  const token = asString(value);
-  return isPortfolioStatus(token) ? token : fallback;
 };
 
 const asStringArray = (value: unknown): string[] => {
@@ -406,63 +358,6 @@ export function validateBlogPost(payload: unknown): BlogPost | null {
   };
 }
 
-export function validatePortfolioProject(payload: unknown): PortfolioProject | null {
-  if (!isObject(payload)) return null;
-
-  const rawSeo = isObject(payload.seo) ? payload.seo : {};
-  const title = asString(payload.title).trim();
-  if (!title) return null;
-
-  const status = asPortfolioStatus(payload.status, 'draft');
-  const normalizedSlug = normalizeSlugValue(asString(rawSeo.slug)) || normalizeSlugValue(title) || 'portfolio-project';
-
-  const gallery = asStringArray(payload.gallery)
-    .map((entry) => asSafeAssetUrl(entry))
-    .filter((entry) => entry.length > 0);
-
-  const tags = asStringArray(payload.tags)
-    .map((tag) => normalizeSlugValue(tag))
-    .filter((tag) => tag.length > 0)
-    .filter((tag, index, list) => list.indexOf(tag) === index);
-
-  const relatedServicePageIds = asStringArray(payload.relatedServicePageIds)
-    .filter((id): id is PortfolioProject['relatedServicePageIds'][number] => isServiceDetailPageId(id))
-    .filter((id, index, list) => list.indexOf(id) === index);
-
-  return {
-    id: asString(payload.id) || crypto.randomUUID(),
-    title,
-    summary: asString(payload.summary),
-    challenge: asString(payload.challenge),
-    solution: asString(payload.solution),
-    outcome: asString(payload.outcome),
-    clientName: asString(payload.clientName),
-    serviceType: asString(payload.serviceType),
-    industry: asString(payload.industry),
-    projectUrl: asSafeHref(payload.projectUrl),
-    relatedServicePageIds,
-    coverImage: asSafeAssetUrl(payload.coverImage),
-    gallery,
-    tags,
-    featured: asBoolean(payload.featured),
-    status,
-    sortOrder: asIntegerClamp(payload.sortOrder, 0, 0, 10000),
-    publishedAt: status === 'published' ? asString(payload.publishedAt) || new Date().toISOString() : null,
-    scheduledPublishAt: asNullableIso(payload.scheduledPublishAt),
-    scheduledUnpublishAt: asNullableIso(payload.scheduledUnpublishAt),
-    updatedAt: asString(payload.updatedAt) || new Date().toISOString(),
-    seo: {
-      metaTitle: asString(rawSeo.metaTitle) || title,
-      metaDescription: asString(rawSeo.metaDescription),
-      slug: normalizedSlug,
-      canonical: asSafeBaseUrl(rawSeo.canonical),
-      socialImage: asSafeAssetUrl(rawSeo.socialImage),
-      noIndex: asBoolean(rawSeo.noIndex),
-      keywords: asKeywords(rawSeo.keywords)
-    }
-  };
-}
-
 export function validateCategory(payload: unknown): Category | null {
   if (!isObject(payload)) return null;
 
@@ -521,44 +416,6 @@ export function validateMediaAsset(payload: unknown): MediaAsset | null {
     createdAt: asString(payload.createdAt) || new Date().toISOString(),
     updatedAt: asString(payload.updatedAt) || new Date().toISOString()
   };
-}
-
-export function validateContactSubmission(payload: unknown): ContactSubmission | null {
-  if (!isObject(payload)) return null;
-
-  const name = asString(payload.name).trim();
-  const company = asString(payload.company).trim();
-  const email = asString(payload.email).trim().toLowerCase();
-  const serviceCategory = asString(payload.serviceCategory).trim();
-  const projectOverview = asString(payload.projectOverview).trim();
-
-  const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-  const lengthsOk =
-    name.length <= contactSubmissionMaxLengths.name &&
-    company.length <= contactSubmissionMaxLengths.company &&
-    email.length <= contactSubmissionMaxLengths.email &&
-    serviceCategory.length <= contactSubmissionMaxLengths.serviceCategory &&
-    projectOverview.length <= contactSubmissionMaxLengths.projectOverview;
-
-  if (!name || !emailOk || !serviceCategory || !projectOverview || !lengthsOk) {
-    return null;
-  }
-
-  return {
-    id: asString(payload.id) || crypto.randomUUID(),
-    name,
-    company,
-    email,
-    serviceCategory,
-    projectOverview,
-    status: asContactSubmissionStatus(payload.status, 'new'),
-    createdAt: asString(payload.createdAt) || new Date().toISOString()
-  };
-}
-
-export function validateContactSubmissionStatus(value: unknown): ContactSubmissionStatus | null {
-  const status = asString(value);
-  return isContactSubmissionStatus(status) ? status : null;
 }
 
 function asNavigationLinks(
@@ -726,7 +583,6 @@ export function validateSiteSettings(payload: unknown): SiteSettings | null {
       enabled: asBoolean(sitemap.enabled),
       includePages: asBoolean(sitemap.includePages),
       includePosts: asBoolean(sitemap.includePosts),
-      includePortfolio: asBoolean(sitemap.includePortfolio),
       includeLastModified: asBoolean(sitemap.includeLastModified)
     },
     siteName,

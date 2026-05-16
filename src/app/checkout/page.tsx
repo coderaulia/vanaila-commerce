@@ -68,7 +68,8 @@ export default function CheckoutPage() {
       if (data.paymentUrl) {
         window.location.href = data.paymentUrl;
       } else {
-        router.push(`/shop/order/${data.order.id}?status=pending`);
+        const tokenParam = data.receiptToken ? `&token=${encodeURIComponent(data.receiptToken)}` : '';
+        router.push(`/shop/order/${data.order.id}?status=pending${tokenParam}`);
       }
     } catch {
       setError('Network error. Please try again.');

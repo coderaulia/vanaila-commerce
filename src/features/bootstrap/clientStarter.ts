@@ -1,7 +1,7 @@
 import type { CmsContent, NavigationLink, PageId } from '@/features/cms/types';
 
-export const bootstrapModules = ['services', 'blog', 'portfolio', 'partnership'] as const;
-export const bootstrapPages = ['about', 'service', 'partnership', 'contact'] as const;
+export const bootstrapModules = ['blog', 'services', 'portfolio', 'partnership'] as const;
+export const bootstrapPages = ['about', 'contact', 'service', 'partnership'] as const;
 export const bootstrapVariants = ['brochure', 'blog-seo', 'portfolio-case-studies', 'lead-gen'] as const;
 export const bootstrapFixtures = ['full-service', ...bootstrapVariants] as const;
 
@@ -76,13 +76,7 @@ type HrefAvailability = {
   partnership: boolean;
 };
 
-const serviceDetailPages = [
-  'service-website-development',
-  'service-custom-business-tools',
-  'service-secure-online-shops',
-  'service-mobile-business-app',
-  'service-official-business-email'
-] as const satisfies readonly PageId[];
+const serviceDetailPages: string[] = [];
 
 const serviceLinks = [
   { href: '/website-development', label: 'Website Development' },
@@ -462,25 +456,10 @@ function createPlaceholderImage(size: string, label: string) {
   return `https://placehold.co/${size}/png?text=${encodeURIComponent(label)}`;
 }
 
-function createEnabledPageIds(config: BootstrapConfig) {
+function createEnabledPageIds(config: BootstrapConfig): Set<PageId> {
   const enabled = new Set<PageId>(['home']);
-
-  if (config.pages.includes('about')) {
-    enabled.add('about');
-  }
-  if (config.pages.includes('contact')) {
-    enabled.add('contact');
-  }
-  if (config.modules.includes('partnership')) {
-    enabled.add('partnership');
-  }
-  if (config.modules.includes('services')) {
-    enabled.add('service');
-    for (const pageId of serviceDetailPages) {
-      enabled.add(pageId);
-    }
-  }
-
+  if (config.pages.includes('about')) enabled.add('about');
+  if (config.pages.includes('contact')) enabled.add('contact');
   return enabled;
 }
 
@@ -752,7 +731,6 @@ export function buildStarterContent(baseContent: CmsContent, config: BootstrapCo
   content.settings.social.chatHref = config.pages.includes('contact') ? '/contact' : fallbackHref(config);
   content.settings.branding.copyrightText = `(c) ${currentYear} ${config.organizationName}.`;
   content.settings.sitemap.includePosts = config.modules.includes('blog');
-  content.settings.sitemap.includePortfolio = config.modules.includes('portfolio');
   content.settings.reading.postsPageId = '';
 
   content.pages = Object.fromEntries(
@@ -816,31 +794,18 @@ export function buildFixtureSeedContent(
 
 export function buildSiteProfileSource(config: BootstrapConfig) {
   const primaryPageOrder: PageId[] = ['home'];
-  if (config.pages.includes('about')) {
-    primaryPageOrder.push('about');
-  }
-  if (config.modules.includes('services')) {
-    primaryPageOrder.push('service');
-  }
-  if (config.modules.includes('partnership')) {
-    primaryPageOrder.push('partnership');
-  }
-  if (config.pages.includes('contact')) {
-    primaryPageOrder.push('contact');
-  }
+  if (config.pages.includes('about')) primaryPageOrder.push('about');
+  if (config.pages.includes('contact')) primaryPageOrder.push('contact');
 
   const fallbackNavigator = [
     { href: '/', label: 'Home' },
     ...(config.pages.includes('about') ? [{ href: '/about', label: 'About Us' }] : []),
-    ...(config.modules.includes('services') ? [{ href: '/service', label: 'Services' }] : []),
     ...(config.modules.includes('blog') ? [{ href: '/blog', label: blogLabel(config) }] : []),
-    ...(config.modules.includes('partnership') ? [{ href: '/partnership', label: 'Partnership' }] : []),
-    ...(config.pages.includes('contact') ? [{ href: '/contact', label: 'Contact' }] : []),
-    ...(config.modules.includes('portfolio') ? [{ href: '/portfolio', label: portfolioLabel(config) }] : [])
+    ...(config.pages.includes('contact') ? [{ href: '/contact', label: 'Contact' }] : [])
   ];
 
-  const activeServicePages = config.modules.includes('services') ? serviceDetailPages : [];
-  const fallbackServices = config.modules.includes('services') ? [...serviceLinks] : [];
+  const activeServicePages: string[] = [];
+  const fallbackServices: { href: string; label: string }[] = [];
 
   return `import type { PageId } from '@/features/cms/types';
 
