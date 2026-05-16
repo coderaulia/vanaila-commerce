@@ -58,6 +58,40 @@ export type PaymentMethod = 'midtrans' | 'manual_transfer';
 
 export type PaymentStatus = 'pending' | 'paid' | 'failed' | 'expired' | 'refunded';
 
+export type ShippingDestination = {
+  id: string;
+  label: string;
+  province: string;
+  city: string;
+  district: string;
+  subdistrict: string;
+  postalCode: string;
+};
+
+export type ShippingQuote = {
+  id: string;
+  provider: 'rajaongkir';
+  courierCode: string;
+  courierName: string;
+  serviceCode: string;
+  serviceName: string;
+  description: string;
+  etd: string;
+  cost: number;
+  weightGrams: number;
+};
+
+export type ShippingSelection = {
+  destinationId: string;
+  destinationLabel: string;
+  courierCode: string;
+  serviceCode: string;
+  serviceName: string;
+  cost: number;
+  etd?: string;
+  provider?: ShippingQuote['provider'];
+};
+
 export type OrderItem = {
   id: string;
   orderId: string;
@@ -163,6 +197,7 @@ export type CheckoutPayload = {
     postalCode: string;
   };
   paymentMethod: PaymentMethod;
+  shipping?: ShippingSelection;
   couponCode?: string;
   notes?: string;
 };

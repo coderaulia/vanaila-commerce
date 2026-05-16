@@ -105,5 +105,30 @@ export const env = {
    */
   get passwordPepper() {
     return clean(process.env.PASSWORD_PEPPER);
+  },
+  get rajaOngkirApiKey() {
+    return clean(process.env.RAJAONGKIR_API_KEY);
+  },
+  get rajaOngkirBaseUrl() {
+    return clean(process.env.RAJAONGKIR_BASE_URL) || 'https://rajaongkir.komerce.id/api/v1';
+  },
+  get shippingOriginId() {
+    return clean(process.env.SHIPPING_ORIGIN_ID);
+  },
+  get shippingCouriers() {
+    const raw = clean(process.env.SHIPPING_COURIERS) || 'jne:sicepat:anteraja:jnt:pos:tiki';
+    return raw
+      .split(/[:,\s]+/)
+      .map((value) => value.trim().toLowerCase())
+      .filter(Boolean);
+  },
+  get shippingDefaultWeightGrams() {
+    return parsePositiveInt(process.env.SHIPPING_DEFAULT_WEIGHT_GRAMS) ?? 1000;
+  },
+  get shippingFreeThreshold() {
+    const normalized = clean(process.env.SHIPPING_FREE_THRESHOLD);
+    if (!normalized) return null;
+    const parsed = Number(normalized);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
   }
 };
