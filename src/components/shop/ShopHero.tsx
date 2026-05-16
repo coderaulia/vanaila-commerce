@@ -71,7 +71,7 @@ function SpotlightProduct() {
 
   const handleQuickAdd = () => {
     if (!product || !variant) return;
-    addToCart(product.id, variant.id, 1);
+    addToCart(product, variant, 1);
     setAdded(true);
     setTimeout(() => setAdded(false), 2000);
   };
@@ -199,7 +199,7 @@ function TrendingCard({ product, variant, badge }: TrendingCardProps) {
   const handleAdd = (e: React.MouseEvent) => {
     e.preventDefault();
     if (!variant) return;
-    addToCart(product.id, variant.id, 1);
+    addToCart(product, variant, 1);
     setAdded(true);
     setTimeout(() => setAdded(false), 2000);
   };

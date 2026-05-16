@@ -26,6 +26,10 @@ function cap(value: unknown, max: number): string {
   return String(value ?? '').trim().slice(0, max);
 }
 
+function asPaymentMethod(value: unknown): CheckoutPayload['paymentMethod'] | null {
+  return value === 'midtrans' || value === 'manual_transfer' ? value : null;
+}
+
 function normalizeItems(value: unknown): CheckoutPayload['items'] | null {
   if (!Array.isArray(value) || value.length === 0 || value.length > MAX_ITEMS) {
     return null;
@@ -66,6 +70,10 @@ export async function POST(request: Request) {
   if (!items) {
     return NextResponse.json({ error: 'Invalid checkout items' }, { status: 400 });
   }
+  const paymentMethod = asPaymentMethod(raw.paymentMethod);
+  if (!paymentMethod) {
+    return NextResponse.json({ error: 'Invalid payment method' }, { status: 400 });
+  }
 
   // Apply length caps to all string fields before any further processing
   const body: CheckoutPayload = {
@@ -79,7 +87,7 @@ export async function POST(request: Request) {
       province: cap(raw.customer.province, MAX.province),
       postalCode: cap(raw.customer.postalCode, MAX.postalCode)
     },
-    paymentMethod: raw.paymentMethod,
+    paymentMethod,
     couponCode: raw.couponCode ? cap(raw.couponCode, MAX.couponCode) : undefined,
     notes: raw.notes ? cap(raw.notes, MAX.notes) : undefined
   };

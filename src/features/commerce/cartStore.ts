@@ -2,7 +2,7 @@
 
 import { useSyncExternalStore } from 'react';
 
-import type { CartItem } from './types';
+import type { CartItem, Product, ProductVariant } from './types';
 
 type CartState = {
   items: CartItem[];
@@ -61,21 +61,59 @@ function subscribe(listener: () => void): () => void {
   return () => listeners.delete(listener);
 }
 
+function normalizeQuantity(quantity: number): number {
+  return Number.isFinite(quantity) ? Math.max(1, Math.floor(quantity)) : 1;
+}
+
+function resolveProductId(product: Product | string): string {
+  return typeof product === 'string' ? product : product.id;
+}
+
+function resolveVariantId(variant: ProductVariant | string): string {
+  return typeof variant === 'string' ? variant : variant.id;
+}
+
+function resolveProduct(product: Product | string): Product | undefined {
+  return typeof product === 'string' ? undefined : product;
+}
+
+function resolveVariant(variant: ProductVariant | string): ProductVariant | undefined {
+  return typeof variant === 'string' ? undefined : variant;
+}
+
 // ─── Actions ────────────────────────────────────────────────────────────────
 
-export function addToCart(productId: string, variantId: string, quantity = 1): void {
+export function addToCart(product: Product, variant: ProductVariant, quantity?: number): void;
+export function addToCart(productId: string, variantId: string, quantity?: number): void;
+export function addToCart(
+  productOrId: Product | string,
+  variantOrId: ProductVariant | string,
+  quantity = 1
+): void {
+  const productId = resolveProductId(productOrId);
+  const variantId = resolveVariantId(variantOrId);
+  const product = resolveProduct(productOrId);
+  const variant = resolveVariant(variantOrId);
+  const safeQuantity = normalizeQuantity(quantity);
   const existing = state.items.find((i) => i.variantId === variantId);
   if (existing) {
     state = {
       ...state,
       items: state.items.map((i) =>
-        i.variantId === variantId ? { ...i, quantity: i.quantity + quantity } : i
+        i.variantId === variantId
+          ? {
+              ...i,
+              product: product ?? i.product,
+              variant: variant ?? i.variant,
+              quantity: i.quantity + safeQuantity
+            }
+          : i
       )
     };
   } else {
     state = {
       ...state,
-      items: [...state.items, { productId, variantId, quantity }]
+      items: [...state.items, { productId, variantId, quantity: safeQuantity, product, variant }]
     };
   }
   persist();
@@ -83,13 +121,17 @@ export function addToCart(productId: string, variantId: string, quantity = 1): v
 }
 
 export function updateCartQuantity(variantId: string, quantity: number): void {
-  if (quantity <= 0) {
+  const safeQuantity = Math.floor(quantity);
+  if (!Number.isFinite(safeQuantity) || safeQuantity <= 0) {
     removeFromCart(variantId);
     return;
   }
+  const current = state.items.find((i) => i.variantId === variantId);
+  const stock = current?.variant?.stock;
+  const nextQuantity = typeof stock === 'number' && stock > 0 ? Math.min(safeQuantity, stock) : safeQuantity;
   state = {
     ...state,
-    items: state.items.map((i) => (i.variantId === variantId ? { ...i, quantity } : i))
+    items: state.items.map((i) => (i.variantId === variantId ? { ...i, quantity: nextQuantity } : i))
   };
   persist();
   emit();

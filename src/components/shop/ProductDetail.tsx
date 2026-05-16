@@ -19,7 +19,7 @@ export function ProductDetail({ product }: Props) {
 
   const handleAddToCart = () => {
     if (!selectedVariant) return;
-    addToCart(product.id, selectedVariant.id, quantity);
+    addToCart(product, selectedVariant, quantity);
     setAdded(true);
     setTimeout(() => setAdded(false), 2500);
   };
@@ -231,14 +231,12 @@ export function ProductDetail({ product }: Props) {
             </div>
           </div>
 
-          {/* Description — admin-only HTML content */}
           {product.description && (
             <div className="mt-8 border-t border-gray-100 pt-6">
               <h2 className="font-bold text-sm uppercase tracking-widest mb-4">Product Details</h2>
-              <div
-                className="text-sm text-gray-600 leading-relaxed [&_ul]:list-disc [&_ul]:pl-4 [&_li]:mt-1"
-                dangerouslySetInnerHTML={{ __html: product.description }}
-              />
+              <p className="whitespace-pre-line text-sm text-gray-600 leading-relaxed">
+                {product.description}
+              </p>
             </div>
           )}
         </div>

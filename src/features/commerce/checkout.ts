@@ -1,11 +1,17 @@
 import { randomUUID } from 'node:crypto';
 
 import { getDb } from '@/db/client';
-import { orderItemsTable, ordersTable, productVariantsTable, couponsTable, customersTable } from '@/db/schema';
-import { eq, sql } from 'drizzle-orm';
+import {
+  couponsTable,
+  customersTable,
+  inventoryLogsTable,
+  orderItemsTable,
+  ordersTable,
+  productVariantsTable
+} from '@/db/schema';
+import { and, eq, sql } from 'drizzle-orm';
 
 import type { CheckoutPayload, Order, OrderItem } from './types';
-import { adjustStock, getOrCreateCustomer, getCouponByCode } from './store';
 import { createOrderReceiptToken } from './orderReceipt';
 
 const nowIso = () => new Date().toISOString();
@@ -18,6 +24,27 @@ function generateOrderNumber(): string {
   return `${prefix}-${suffix}`;
 }
 
+function normalizeCheckoutItems(items: CheckoutPayload['items']) {
+  const byVariant = new Map<string, number>();
+
+  for (const item of items) {
+    if (!item.variantId || !Number.isInteger(item.quantity) || item.quantity < 1) {
+      return null;
+    }
+    byVariant.set(item.variantId, (byVariant.get(item.variantId) ?? 0) + item.quantity);
+  }
+
+  const normalized = [...byVariant.entries()].map(([variantId, quantity]) => ({ variantId, quantity }));
+  if (
+    normalized.length === 0 ||
+    normalized.some((item) => item.quantity < 1 || item.quantity > MAX_CHECKOUT_QUANTITY)
+  ) {
+    return null;
+  }
+
+  return normalized;
+}
+
 export type CheckoutResult = {
   order: Order;
   items: OrderItem[];
@@ -27,185 +54,253 @@ export type CheckoutResult = {
 
 export async function processCheckout(payload: CheckoutPayload): Promise<CheckoutResult> {
   const db = getDb();
-  const now = nowIso();
+  const checkoutItems = normalizeCheckoutItems(payload.items);
 
-  if (
-    payload.items.length === 0 ||
-    payload.items.some((item) => !item.variantId || !Number.isInteger(item.quantity) || item.quantity < 1 || item.quantity > MAX_CHECKOUT_QUANTITY)
-  ) {
+  if (!checkoutItems) {
     throw new Error('Invalid checkout items');
   }
 
-  // 1. Resolve customer
-  const customer = await getOrCreateCustomer(payload.customer);
+  const result = await db.transaction(async (tx) => {
+    const now = nowIso();
+    const existingCustomers = await tx
+      .select({ id: customersTable.id })
+      .from(customersTable)
+      .where(eq(customersTable.email, payload.customer.email))
+      .limit(1);
+    let customerId = existingCustomers[0]?.id;
 
-  // 2. Resolve variants and calculate totals
-  const variantIds = payload.items.map((i) => i.variantId);
-  const variants = await db
-    .select()
-    .from(productVariantsTable)
-    .where(sql`${productVariantsTable.id} = ANY(${variantIds})`);
+    if (!customerId) {
+      customerId = randomUUID();
+      await tx
+        .insert(customersTable)
+        .values({
+          id: customerId,
+          ...payload.customer,
+          totalOrders: 0,
+          totalSpent: '0',
+          createdAt: now,
+          updatedAt: now
+        })
+        .onConflictDoNothing({ target: customersTable.email });
 
-  const variantMap = new Map(variants.map((v) => [v.id, v]));
-
-  let subtotal = 0;
-  const orderItems: Array<{
-    id: string;
-    productId: string;
-    variantId: string;
-    productTitle: string;
-    variantName: string;
-    sku: string;
-    quantity: number;
-    unitPrice: number;
-    totalPrice: number;
-  }> = [];
-
-  for (const item of payload.items) {
-    const variant = variantMap.get(item.variantId);
-    if (!variant) throw new Error(`Variant ${item.variantId} not found`);
-    if (Number(variant.stock) < item.quantity) {
-      throw new Error(`Insufficient stock for ${variant.name} (SKU: ${variant.sku})`);
+      const rows = await tx
+        .select({ id: customersTable.id })
+        .from(customersTable)
+        .where(eq(customersTable.email, payload.customer.email))
+        .limit(1);
+      customerId = rows[0]?.id;
+      if (!customerId) throw new Error('Unable to resolve customer');
     }
 
-    const unitPrice = Number(variant.price);
-    const totalPrice = unitPrice * item.quantity;
-    subtotal += totalPrice;
+    const variantIds = checkoutItems.map((item) => item.variantId);
+    const variants = await tx
+      .select()
+      .from(productVariantsTable)
+      .where(sql`${productVariantsTable.id} = ANY(${variantIds})`);
+    const variantMap = new Map(variants.map((variant) => [variant.id, variant]));
 
-    orderItems.push({
-      id: randomUUID(),
-      productId: variant.productId,
-      variantId: variant.id,
-      productTitle: variant.name,
-      variantName: variant.name,
-      sku: variant.sku,
-      quantity: item.quantity,
-      unitPrice,
-      totalPrice
-    });
-  }
+    let subtotal = 0;
+    const orderItems: Array<{
+      id: string;
+      productId: string;
+      variantId: string;
+      productTitle: string;
+      variantName: string;
+      sku: string;
+      quantity: number;
+      unitPrice: number;
+      totalPrice: number;
+    }> = [];
 
-  // 3. Apply coupon if provided
-  let discount = 0;
-  let couponId: string | null = null;
+    for (const item of checkoutItems) {
+      const variant = variantMap.get(item.variantId);
+      if (!variant) throw new Error(`Variant ${item.variantId} not found`);
+      if (Number(variant.stock) < item.quantity) {
+        throw new Error(`Insufficient stock for ${variant.name} (SKU: ${variant.sku})`);
+      }
 
-  if (payload.couponCode) {
-    const coupon = await getCouponByCode(payload.couponCode);
-    if (coupon && coupon.active) {
-      const now = new Date();
-      const validStart = !coupon.startsAt || new Date(coupon.startsAt) <= now;
-      const validEnd = !coupon.expiresAt || new Date(coupon.expiresAt) >= now;
-      const validUses = coupon.maxUses === null || coupon.usedCount < coupon.maxUses;
-      const validMin = coupon.minOrderAmount === null || subtotal >= coupon.minOrderAmount;
+      const unitPrice = Number(variant.price);
+      const totalPrice = unitPrice * item.quantity;
+      subtotal += totalPrice;
 
-      if (validStart && validEnd && validUses && validMin) {
-        couponId = coupon.id;
-        if (coupon.type === 'percentage') {
-          discount = Math.round((subtotal * coupon.value) / 100);
-        } else {
-          discount = Math.min(coupon.value, subtotal);
+      orderItems.push({
+        id: randomUUID(),
+        productId: variant.productId,
+        variantId: variant.id,
+        productTitle: variant.name,
+        variantName: variant.name,
+        sku: variant.sku,
+        quantity: item.quantity,
+        unitPrice,
+        totalPrice
+      });
+    }
+
+    let discount = 0;
+    let couponId: string | null = null;
+
+    if (payload.couponCode) {
+      const couponCode = payload.couponCode.toUpperCase();
+      const couponRows = await tx.select().from(couponsTable).where(eq(couponsTable.code, couponCode)).limit(1);
+      const coupon = couponRows[0];
+      if (coupon) {
+        const value = Number(coupon.value);
+        const candidateDiscount =
+          coupon.type === 'percentage' ? Math.round((subtotal * value) / 100) : Math.min(value, subtotal);
+
+        if (
+          candidateDiscount > 0 &&
+          (coupon.minOrderAmount === null || subtotal >= Number(coupon.minOrderAmount))
+        ) {
+          const updatedCoupons = await tx
+            .update(couponsTable)
+            .set({
+              usedCount: sql`${couponsTable.usedCount} + 1`,
+              updatedAt: now
+            })
+            .where(
+              and(
+                eq(couponsTable.id, coupon.id),
+                eq(couponsTable.active, true),
+                sql`(${couponsTable.startsAt} is null or ${couponsTable.startsAt} <= ${now})`,
+                sql`(${couponsTable.expiresAt} is null or ${couponsTable.expiresAt} >= ${now})`,
+                sql`(${couponsTable.maxUses} is null or ${couponsTable.usedCount} < ${couponsTable.maxUses})`
+              )
+            )
+            .returning({ id: couponsTable.id });
+
+          if (updatedCoupons.length > 0) {
+            couponId = coupon.id;
+            discount = candidateDiscount;
+          }
         }
-
-        // Increment used count
-        await db
-          .update(couponsTable)
-          .set({ usedCount: sql`${couponsTable.usedCount} + 1` })
-          .where(eq(couponsTable.id, coupon.id));
       }
     }
-  }
 
-  const total = subtotal - discount;
-  const orderId = randomUUID();
-  const orderNumber = generateOrderNumber();
-
-  // 4. Create order
-  const orderRow = {
-    id: orderId,
-    orderNumber,
-    customerId: customer.id,
-    status: 'pending_payment' as const,
-    paymentMethod: payload.paymentMethod,
-    paymentStatus: 'pending' as const,
-    paymentReference: null,
-    subtotal: String(subtotal),
-    discount: String(discount),
-    shippingCost: '0',
-    total: String(total),
-    couponId,
-    shippingName: payload.customer.name,
-    shippingPhone: payload.customer.phone,
-    shippingAddress: payload.customer.address,
-    shippingCity: payload.customer.city,
-    shippingProvince: payload.customer.province,
-    shippingPostalCode: payload.customer.postalCode,
-    notes: payload.notes || '',
-    createdAt: now,
-    updatedAt: now
-  };
-
-  await db.insert(ordersTable).values(orderRow);
-
-  // 5. Create order items
-  const itemRows = orderItems.map((item) => ({
-    ...item,
-    orderId,
-    unitPrice: String(item.unitPrice),
-    totalPrice: String(item.totalPrice)
-  }));
-  await db.insert(orderItemsTable).values(itemRows);
-
-  // 6. Deduct stock
-  for (const item of payload.items) {
-    const variant = variantMap.get(item.variantId)!;
-    const newStock = Number(variant.stock) - item.quantity;
-    await adjustStock(item.variantId, newStock, 'order_placed', orderId);
-  }
-
-  // 7. Update customer stats
-  await db
-    .update(customersTable)
-    .set({
-      totalOrders: sql`${customersTable.totalOrders} + 1`,
-      totalSpent: sql`${customersTable.totalSpent} + ${total}`,
+    const total = subtotal - discount;
+    const orderId = randomUUID();
+    const orderNumber = generateOrderNumber();
+    const orderRow = {
+      id: orderId,
+      orderNumber,
+      customerId,
+      status: 'pending_payment' as const,
+      paymentMethod: payload.paymentMethod,
+      paymentStatus: 'pending' as const,
+      paymentReference: null,
+      subtotal: String(subtotal),
+      discount: String(discount),
+      shippingCost: '0',
+      total: String(total),
+      couponId,
+      shippingName: payload.customer.name,
+      shippingPhone: payload.customer.phone,
+      shippingAddress: payload.customer.address,
+      shippingCity: payload.customer.city,
+      shippingProvince: payload.customer.province,
+      shippingPostalCode: payload.customer.postalCode,
+      notes: payload.notes || '',
+      createdAt: now,
       updatedAt: now
-    })
-    .where(eq(customersTable.id, customer.id));
+    };
 
-  const order: Order = {
-    id: orderId,
-    orderNumber,
-    customerId: customer.id,
-    status: 'pending_payment',
-    paymentMethod: payload.paymentMethod,
-    paymentStatus: 'pending',
-    paymentReference: null,
-    subtotal,
-    discount,
-    shippingCost: 0,
-    total,
-    couponId,
-    shippingName: payload.customer.name,
-    shippingPhone: payload.customer.phone,
-    shippingAddress: payload.customer.address,
-    shippingCity: payload.customer.city,
-    shippingProvince: payload.customer.province,
-    shippingPostalCode: payload.customer.postalCode,
-    notes: payload.notes || '',
-    createdAt: now,
-    updatedAt: now,
-    items: orderItems.map((i) => ({ ...i, orderId }))
-  };
+    await tx.insert(ordersTable).values(orderRow);
 
-  const receiptToken = createOrderReceiptToken(order);
+    await tx.insert(orderItemsTable).values(
+      orderItems.map((item) => ({
+        ...item,
+        orderId,
+        unitPrice: String(item.unitPrice),
+        totalPrice: String(item.totalPrice)
+      }))
+    );
+
+    for (const item of checkoutItems) {
+      const variant = variantMap.get(item.variantId)!;
+      const stockUpdates = await tx
+        .update(productVariantsTable)
+        .set({
+          stock: sql`${productVariantsTable.stock} - ${item.quantity}`,
+          updatedAt: now
+        })
+        .where(
+          and(
+            eq(productVariantsTable.id, item.variantId),
+            sql`${productVariantsTable.stock} >= ${item.quantity}`
+          )
+        )
+        .returning({ newStock: productVariantsTable.stock });
+
+      const newStock = stockUpdates[0]?.newStock;
+      if (newStock === undefined) {
+        throw new Error(`Insufficient stock for ${variant.name} (SKU: ${variant.sku})`);
+      }
+
+      await tx.insert(inventoryLogsTable).values({
+        id: randomUUID(),
+        variantId: item.variantId,
+        previousStock: Number(newStock) + item.quantity,
+        newStock: Number(newStock),
+        reason: 'order_placed',
+        orderId,
+        createdAt: now
+      });
+    }
+
+    await tx
+      .update(customersTable)
+      .set({
+        totalOrders: sql`${customersTable.totalOrders} + 1`,
+        totalSpent: sql`${customersTable.totalSpent} + ${total}`,
+        updatedAt: now
+      })
+      .where(eq(customersTable.id, customerId));
+
+    const order: Order = {
+      id: orderId,
+      orderNumber,
+      customerId,
+      status: 'pending_payment',
+      paymentMethod: payload.paymentMethod,
+      paymentStatus: 'pending',
+      paymentReference: null,
+      subtotal,
+      discount,
+      shippingCost: 0,
+      total,
+      couponId,
+      shippingName: payload.customer.name,
+      shippingPhone: payload.customer.phone,
+      shippingAddress: payload.customer.address,
+      shippingCity: payload.customer.city,
+      shippingProvince: payload.customer.province,
+      shippingPostalCode: payload.customer.postalCode,
+      notes: payload.notes || '',
+      createdAt: now,
+      updatedAt: now,
+      items: orderItems.map((item) => ({ ...item, orderId }))
+    };
+
+    return {
+      order,
+      items: order.items!,
+      receiptToken: createOrderReceiptToken(order)
+    };
+  });
 
   // 8. Payment processing
   let paymentUrl: string | undefined;
   if (payload.paymentMethod === 'midtrans') {
-    paymentUrl = await createMidtransTransaction(orderId, orderNumber, total, receiptToken, payload.customer);
+    paymentUrl = await createMidtransTransaction(
+      result.order.id,
+      result.order.orderNumber,
+      result.order.total,
+      result.receiptToken,
+      payload.customer
+    );
   }
 
-  return { order, items: order.items!, receiptToken, paymentUrl };
+  return { ...result, paymentUrl };
 }
 
 // ─── Midtrans Integration ───────────────────────────────────────────────────
