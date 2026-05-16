@@ -422,4 +422,4 @@ When `false`:
 | Shipping cost calculation integration | M | — |
 | Product reviews/ratings | L | — |
 | Inventory low-stock alerts | S | — |
-| Order export (CSV) | S | — |
+| Order export (CSV) | S | ✅ Done — `GET /api/admin/orders/export`, respects active status/search filters |

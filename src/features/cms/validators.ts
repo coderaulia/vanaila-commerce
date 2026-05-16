@@ -462,6 +462,8 @@ export function validateSiteSettings(payload: unknown): SiteSettings | null {
   const permalinks = isObject(payload.permalinks) ? payload.permalinks : {};
   const seo = isObject(payload.seo) ? payload.seo : {};
   const sitemap = isObject(payload.sitemap) ? payload.sitemap : {};
+  const store = isObject(payload.store) ? payload.store : {};
+  const payments = isObject(payload.payments) ? payload.payments : {};
 
   const siteName = asString(general.siteName) || asString(payload.siteName);
   const baseUrl = asSafeBaseUrl(general.baseUrl) || asSafeBaseUrl(payload.baseUrl);
@@ -584,6 +586,26 @@ export function validateSiteSettings(payload: unknown): SiteSettings | null {
       includePages: asBoolean(sitemap.includePages),
       includePosts: asBoolean(sitemap.includePosts),
       includeLastModified: asBoolean(sitemap.includeLastModified)
+    },
+    store: {
+      storeName: asString(store.storeName),
+      currency: asString(store.currency) || 'IDR',
+      currencySymbol: asString(store.currencySymbol) || 'Rp',
+      storePhone: asString(store.storePhone),
+      storeAddress: asString(store.storeAddress),
+      storeCity: asString(store.storeCity),
+      storeProvince: asString(store.storeProvince),
+      storePostalCode: asString(store.storePostalCode),
+      minOrderAmount: asIntegerClamp(store.minOrderAmount, 0, 0, 100_000_000),
+      freeShippingThreshold: asIntegerClamp(store.freeShippingThreshold, 0, 0, 100_000_000)
+    },
+    payments: {
+      midtransEnabled: asBoolean(payments.midtransEnabled),
+      manualTransferEnabled: asBoolean(payments.manualTransferEnabled),
+      bankName: asString(payments.bankName),
+      bankAccountNumber: asString(payments.bankAccountNumber),
+      bankAccountHolder: asString(payments.bankAccountHolder),
+      paymentInstructions: asString(payments.paymentInstructions)
     },
     siteName,
     baseUrl,

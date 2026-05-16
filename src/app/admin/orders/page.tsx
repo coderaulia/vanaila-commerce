@@ -17,6 +17,7 @@ function OrdersList() {
   const [status, setStatus] = useState('all');
   const [q, setQ] = useState('');
   const [page, setPage] = useState(1);
+  const [exporting, setExporting] = useState(false);
 
   const fetchOrders = useCallback(async () => {
     setLoading(true);
@@ -30,6 +31,23 @@ function OrdersList() {
   useEffect(() => { fetchOrders(); }, [fetchOrders]);
 
   const totalPages = data ? Math.ceil(data.meta.total / data.meta.pageSize) : 0;
+
+  const handleExport = async () => {
+    setExporting(true);
+    const params = new URLSearchParams({ status });
+    if (q) params.set('q', q);
+    const res = await fetch(`/api/admin/orders/export?${params}`);
+    if (res.ok) {
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `orders-${new Date().toISOString().slice(0, 10)}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+    setExporting(false);
+  };
 
   return (
     <div>
@@ -51,6 +69,9 @@ function OrdersList() {
           <option value="cancelled">Cancelled</option>
           <option value="refunded">Refunded</option>
         </select>
+        <button type="button" className="admin-btn admin-btn-secondary" onClick={handleExport} disabled={exporting}>
+          {exporting ? 'Exporting…' : 'Export CSV'}
+        </button>
       </div>
 
       {loading ? (

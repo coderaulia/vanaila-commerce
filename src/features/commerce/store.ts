@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 
-import { and, desc, eq, ilike, sql, asc, or } from 'drizzle-orm';
+import { and, asc, desc, eq, ilike, inArray, or, sql } from 'drizzle-orm';
 
 import { getDb } from '@/db/client';
 import {
@@ -66,6 +66,25 @@ export async function queryProducts(input: ProductQueryInput = {}) {
   ]);
 
   const products: Product[] = items.map(mapProductRow);
+  if (products.length > 0) {
+    const variants = await db
+      .select()
+      .from(productVariantsTable)
+      .where(inArray(productVariantsTable.productId, products.map((product) => product.id)))
+      .orderBy(asc(productVariantsTable.sortOrder));
+    const variantsByProduct = new Map<string, ProductVariant[]>();
+
+    for (const variant of variants.map(mapVariantRow)) {
+      const current = variantsByProduct.get(variant.productId) ?? [];
+      current.push(variant);
+      variantsByProduct.set(variant.productId, current);
+    }
+
+    for (const product of products) {
+      product.variants = variantsByProduct.get(product.id) ?? [];
+    }
+  }
+
   return { products, meta: { total: countResult[0]?.count ?? 0, page, pageSize } };
 }
 
@@ -255,6 +274,20 @@ export type OrderQueryInput = {
   pageSize?: number;
 };
 
+export async function queryAllOrdersForExport(input: Pick<OrderQueryInput, 'status' | 'q'> = {}): Promise<Order[]> {
+  const db = getDb();
+  const { status = 'all', q } = input;
+
+  const conditions = [];
+  if (status !== 'all') conditions.push(eq(ordersTable.status, status));
+  if (q) conditions.push(or(ilike(ordersTable.orderNumber, `%${q}%`), ilike(ordersTable.shippingName, `%${q}%`)));
+
+  const where = conditions.length > 0 ? and(...conditions) : undefined;
+
+  const items = await db.select().from(ordersTable).where(where).orderBy(desc(ordersTable.createdAt));
+  return items.map(mapOrderRow);
+}
+
 export async function queryOrders(input: OrderQueryInput = {}) {
   const db = getDb();
   const { status = 'all', customerId, q, page = 1, pageSize = 20 } = input;
@@ -365,20 +398,15 @@ export async function getOrCreateCustomer(data: { email: string; name: string; p
   const db = getDb();
   const existing = await db.select().from(customersTable).where(eq(customersTable.email, data.email)).limit(1);
   if (existing[0]) {
-    const now = nowIso();
-    const result = await db
-      .update(customersTable)
-      .set({ name: data.name, phone: data.phone, address: data.address, city: data.city, province: data.province, postalCode: data.postalCode, updatedAt: now })
-      .where(eq(customersTable.id, existing[0].id))
-      .returning();
-    return mapCustomerRow(result[0] || existing[0]);
+    return mapCustomerRow(existing[0]);
   }
 
   const now = nowIso();
   const id = randomUUID();
   const row = { id, ...data, totalOrders: 0, totalSpent: '0', createdAt: now, updatedAt: now };
-  await db.insert(customersTable).values(row);
-  return mapCustomerRow(row);
+  await db.insert(customersTable).values(row).onConflictDoNothing({ target: customersTable.email });
+  const rows = await db.select().from(customersTable).where(eq(customersTable.email, data.email)).limit(1);
+  return mapCustomerRow(rows[0] || row);
 }
 
 // ─── Coupons ────────────────────────────────────────────────────────────────

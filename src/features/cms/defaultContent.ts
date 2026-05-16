@@ -387,6 +387,26 @@ export const defaultContent: CmsContent = {
       includePosts: true,
       includeLastModified: true
     },
+    store: {
+      storeName: process.env.CMS_ORG_NAME ?? 'Example Store',
+      currency: 'IDR',
+      currencySymbol: 'Rp',
+      storePhone: '',
+      storeAddress: '',
+      storeCity: '',
+      storeProvince: '',
+      storePostalCode: '',
+      minOrderAmount: 0,
+      freeShippingThreshold: 0
+    },
+    payments: {
+      midtransEnabled: true,
+      manualTransferEnabled: true,
+      bankName: '',
+      bankAccountNumber: '',
+      bankAccountHolder: '',
+      paymentInstructions: 'Please transfer the total amount to the bank account above. Include your order number in the transfer description. Send proof of payment via WhatsApp to confirm your order.'
+    },
     siteName: 'Example Studio.',
     baseUrl: process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000',
     organizationName: process.env.CMS_ORG_NAME ?? 'Example Studio',

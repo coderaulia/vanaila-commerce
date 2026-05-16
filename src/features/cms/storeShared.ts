@@ -68,6 +68,8 @@ export function normalizeSettings(input: unknown): SiteSettings {
   const permalinks = isObject(source.permalinks) ? source.permalinks : {};
   const seo = isObject(source.seo) ? source.seo : {};
   const sitemap = isObject(source.sitemap) ? source.sitemap : {};
+  const store = isObject(source.store) ? source.store : {};
+  const payments = isObject(source.payments) ? source.payments : {};
 
   const next: SiteSettings = {
     ...defaults,
@@ -100,7 +102,9 @@ export function normalizeSettings(input: unknown): SiteSettings {
     media: { ...defaults.media, ...media },
     permalinks: { ...defaults.permalinks, ...permalinks },
     seo: { ...defaults.seo, ...seo },
-    sitemap: { ...defaults.sitemap, ...sitemap }
+    sitemap: { ...defaults.sitemap, ...sitemap },
+    store: { ...defaults.store, ...store },
+    payments: { ...defaults.payments, ...payments }
   } as SiteSettings;
 
   if (typeof source.siteName === 'string' && source.siteName.trim().length > 0) {

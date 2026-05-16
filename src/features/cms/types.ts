@@ -330,6 +330,28 @@ export type SitemapSettings = {
   includeLastModified: boolean;
 };
 
+export type StoreSettings = {
+  storeName: string;
+  currency: string;
+  currencySymbol: string;
+  storePhone: string;
+  storeAddress: string;
+  storeCity: string;
+  storeProvince: string;
+  storePostalCode: string;
+  minOrderAmount: number;
+  freeShippingThreshold: number;
+};
+
+export type PaymentSettings = {
+  midtransEnabled: boolean;
+  manualTransferEnabled: boolean;
+  bankName: string;
+  bankAccountNumber: string;
+  bankAccountHolder: string;
+  paymentInstructions: string;
+};
+
 export type SiteSettings = {
   general: GeneralSettings;
   navigation: NavigationSettings;
@@ -343,6 +365,8 @@ export type SiteSettings = {
   permalinks: PermalinkSettings;
   seo: SeoGlobalSettings;
   sitemap: SitemapSettings;
+  store: StoreSettings;
+  payments: PaymentSettings;
 
   /** @deprecated — use `general.siteName` directly. These aliases will be removed once all consumers are updated. */
   siteName: string;
