@@ -1,0 +1,113 @@
+.root {
+  font-family: var(--font-manrope, var(--font-tight), system-ui, sans-serif);
+  background: #FAFAF9;
+  color: #0A0A0A;
+}
+
+/* ── Marquee ── */
+@keyframes vScroll {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-33.333%); }
+}
+.marquee {
+  animation: vScroll 38s linear infinite;
+}
+
+/* ── Float ── */
+@keyframes vFloat {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-12px); }
+}
+.floatProduct {
+  animation: vFloat 7s ease-in-out infinite;
+}
+
+@keyframes vFloatSlow {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50%       { transform: translateY(-8px) rotate(-0.6deg); }
+}
+.floatSlow {
+  animation: vFloatSlow 9s ease-in-out infinite;
+}
+
+/* ── Ambient blobs ── */
+@keyframes vBlobA {
+  0%, 100% { transform: translate(-10%, -10%) scale(1); }
+  50%       { transform: translate(10%, 6%) scale(1.15); }
+}
+@keyframes vBlobB {
+  0%, 100% { transform: translate(8%, -4%) scale(1); }
+  50%       { transform: translate(-6%, 10%) scale(1.1); }
+}
+.blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.55;
+  pointer-events: none;
+}
+.blobA {
+  width: 480px; height: 480px;
+  top: -120px; left: -120px;
+  background: radial-gradient(circle, rgba(42,91,215,0.32), transparent 70%);
+  animation: vBlobA 14s ease-in-out infinite;
+}
+.blobB {
+  width: 520px; height: 520px;
+  top: 40px; right: -160px;
+  background: radial-gradient(circle, rgba(232,132,59,0.28), transparent 70%);
+  animation: vBlobB 16s ease-in-out infinite;
+}
+
+/* ── Lumen banner grid overlay ── */
+.gridFade {
+  position: absolute;
+  inset: 0;
+  opacity: 0.6;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px);
+  background-size: 56px 56px;
+  mask-image: radial-gradient(ellipse at center, black 0%, transparent 80%);
+  -webkit-mask-image: radial-gradient(ellipse at center, black 0%, transparent 80%);
+}
+
+/* ── Nav ── */
+.navLink {
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: #1A1A1A;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  background: transparent;
+  border: none;
+  font-family: inherit;
+  letter-spacing: -0.005em;
+}
+.navLink:hover { background: rgba(10,10,10,0.05); }
+
+.iconBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px; height: 38px;
+  border-radius: 999px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: #0A0A0A;
+  transition: background 0.15s ease;
+}
+.iconBtn:hover { background: rgba(10,10,10,0.06); }
+
+/* ── Product tiles ── */
+.tile {
+  transition: transform 0.35s cubic-bezier(0.2, 0.7, 0.2, 1), box-shadow 0.35s ease;
+}
+.tile:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 30px 60px -20px rgba(10,10,10,0.18), 0 0 0 1px rgba(10,10,10,0.04);
+}

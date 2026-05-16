@@ -1,0 +1,109 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" font-family="system-ui, sans-serif">
+  <!-- Background -->
+  <rect width="800" height="500" fill="#0A0E1A"/>
+
+  <!-- Subtle grid -->
+  <defs>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
+    </pattern>
+  </defs>
+  <rect width="800" height="500" fill="url(#grid)"/>
+
+  <!-- Nav bar -->
+  <rect y="0" width="800" height="48" fill="#0D1220"/>
+  <!-- Logo mark -->
+  <rect x="24" y="14" width="20" height="20" rx="4" fill="#0033FF"/>
+  <text x="34" y="28" fill="white" font-size="11" font-weight="700" text-anchor="middle">V</text>
+  <!-- Nav links -->
+  <text x="70" y="28" fill="rgba(255,255,255,0.8)" font-size="10" font-weight="500">Home</text>
+  <text x="108" y="28" fill="rgba(255,255,255,0.8)" font-size="10" font-weight="500">About</text>
+  <text x="150" y="28" fill="rgba(255,255,255,0.8)" font-size="10" font-weight="500">Services</text>
+  <text x="198" y="28" fill="rgba(255,255,255,0.8)" font-size="10" font-weight="500">Portfolio</text>
+  <!-- Nav CTA -->
+  <rect x="724" y="14" width="52" height="20" rx="10" fill="#0033FF"/>
+  <text x="750" y="26" fill="white" font-size="9" font-weight="600" text-anchor="middle">Let's talk</text>
+
+  <!-- Hero section -->
+  <!-- Status badge -->
+  <rect x="24" y="72" width="130" height="18" rx="9" fill="rgba(0,51,255,0.15)"/>
+  <circle cx="36" cy="81" r="4" fill="#0033FF"/>
+  <text x="46" y="85" fill="#4D79FF" font-size="9" font-weight="600">[ 01 / Home ] Est. 2018</text>
+
+  <!-- Hero headline -->
+  <text x="24" y="140" fill="white" font-size="52" font-weight="700" letter-spacing="-2">Your business</text>
+  <text x="24" y="195" fill="white" font-size="52" font-weight="700" letter-spacing="-2">online.</text>
+  <!-- Accent text with strikethrough -->
+  <text x="24" y="230" fill="rgba(255,255,255,0.5)" font-size="20" font-weight="400">Faster, smarter, and built to</text>
+  <text x="24" y="255" fill="rgba(255,255,255,0.5)" font-size="20" font-weight="400">scale.</text>
+
+  <!-- CTA buttons -->
+  <rect x="24" y="278" width="120" height="34" rx="17" fill="#0033FF"/>
+  <text x="84" y="299" fill="white" font-size="11" font-weight="600" text-anchor="middle">Start a project</text>
+  <rect x="154" y="278" width="96" height="34" rx="17" fill="none" stroke="rgba(255,255,255,0.25)" stroke-width="1.5"/>
+  <text x="202" y="299" fill="rgba(255,255,255,0.8)" font-size="11" font-weight="500" text-anchor="middle">Our work →</text>
+
+  <!-- Right-side feature cards -->
+  <!-- Card 1 -->
+  <rect x="360" y="64" width="192" height="128" rx="12" fill="#111827"/>
+  <rect x="360" y="64" width="192" height="128" rx="12" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+  <circle cx="384" cy="96" r="16" fill="#0033FF" fill-opacity="0.2"/>
+  <text x="384" y="100" fill="#4D79FF" font-size="14" text-anchor="middle">⬡</text>
+  <text x="360" y="126" fill="white" font-size="13" font-weight="600" dx="24">Digital Strategy</text>
+  <text x="360" y="143" fill="rgba(255,255,255,0.5)" font-size="9" dx="24">Brand positioning &amp; growth</text>
+  <text x="360" y="156" fill="rgba(255,255,255,0.5)" font-size="9" dx="24">roadmaps for modern teams.</text>
+  <text x="360" y="176" fill="#C8E64B" font-size="9" font-weight="600" dx="24">Explore →</text>
+
+  <!-- Card 2 -->
+  <rect x="564" y="64" width="212" height="128" rx="12" fill="#FF5B22" fill-opacity="0.12"/>
+  <rect x="564" y="64" width="212" height="128" rx="12" fill="none" stroke="rgba(255,91,34,0.3)" stroke-width="1"/>
+  <circle cx="588" cy="96" r="16" fill="#FF5B22" fill-opacity="0.25"/>
+  <text x="588" y="100" fill="#FF5B22" font-size="14" text-anchor="middle">◈</text>
+  <text x="564" y="126" fill="white" font-size="13" font-weight="600" dx="24">Web Design</text>
+  <text x="564" y="143" fill="rgba(255,255,255,0.5)" font-size="9" dx="24">Pixel-perfect interfaces built</text>
+  <text x="564" y="156" fill="rgba(255,255,255,0.5)" font-size="9" dx="24">on Vanaila's design system.</text>
+  <text x="564" y="176" fill="#C8E64B" font-size="9" font-weight="600" dx="24">Explore →</text>
+
+  <!-- Card 3 -->
+  <rect x="360" y="204" width="192" height="128" rx="12" fill="#0A1A0A"/>
+  <rect x="360" y="204" width="192" height="128" rx="12" fill="none" stroke="rgba(200,230,75,0.2)" stroke-width="1"/>
+  <circle cx="384" cy="236" r="16" fill="#C8E64B" fill-opacity="0.2"/>
+  <text x="384" y="240" fill="#C8E64B" font-size="14" text-anchor="middle">◉</text>
+  <text x="360" y="266" fill="white" font-size="13" font-weight="600" dx="24">Development</text>
+  <text x="360" y="283" fill="rgba(255,255,255,0.5)" font-size="9" dx="24">Next.js, TypeScript, and</text>
+  <text x="360" y="296" fill="rgba(255,255,255,0.5)" font-size="9" dx="24">production-grade CMS.</text>
+  <text x="360" y="316" fill="#C8E64B" font-size="9" font-weight="600" dx="24">Explore →</text>
+
+  <!-- Card 4 -->
+  <rect x="564" y="204" width="212" height="128" rx="12" fill="#2D5FFF" fill-opacity="0.12"/>
+  <rect x="564" y="204" width="212" height="128" rx="12" fill="none" stroke="rgba(45,95,255,0.3)" stroke-width="1"/>
+  <circle cx="588" cy="236" r="16" fill="#2D5FFF" fill-opacity="0.25"/>
+  <text x="588" y="240" fill="#4D79FF" font-size="14" text-anchor="middle">◎</text>
+  <text x="564" y="266" fill="white" font-size="13" font-weight="600" dx="24">Analytics</text>
+  <text x="564" y="283" fill="rgba(255,255,255,0.5)" font-size="9" dx="24">Data-driven insights and</text>
+  <text x="564" y="296" fill="rgba(255,255,255,0.5)" font-size="9" dx="24">performance dashboards.</text>
+  <text x="564" y="316" fill="#C8E64B" font-size="9" font-weight="600" dx="24">Explore →</text>
+
+  <!-- Bottom stats bar -->
+  <rect y="348" width="800" height="68" fill="#0D1220"/>
+  <line x1="200" y1="362" x2="200" y2="402" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+  <line x1="400" y1="362" x2="400" y2="402" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+  <line x1="600" y1="362" x2="600" y2="402" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+  <text x="100" y="382" fill="white" font-size="22" font-weight="700" text-anchor="middle">30+</text>
+  <text x="100" y="397" fill="rgba(255,255,255,0.5)" font-size="9" text-anchor="middle">Projects Delivered</text>
+  <text x="300" y="382" fill="white" font-size="22" font-weight="700" text-anchor="middle">8+</text>
+  <text x="300" y="397" fill="rgba(255,255,255,0.5)" font-size="9" text-anchor="middle">Years Experience</text>
+  <text x="500" y="382" fill="white" font-size="22" font-weight="700" text-anchor="middle">100%</text>
+  <text x="500" y="397" fill="rgba(255,255,255,0.5)" font-size="9" text-anchor="middle">Client Satisfaction</text>
+  <text x="700" y="382" fill="white" font-size="22" font-weight="700" text-anchor="middle">24/7</text>
+  <text x="700" y="397" fill="rgba(255,255,255,0.5)" font-size="9" text-anchor="middle">Support Available</text>
+
+  <!-- Footer -->
+  <rect y="416" width="800" height="84" fill="#060810"/>
+  <text x="24" y="448" fill="rgba(255,255,255,0.4)" font-size="9">© 2026 Vanaila Studio</text>
+  <text x="24" y="463" fill="rgba(255,255,255,0.25)" font-size="8">Digital agency · Design · Development · Strategy</text>
+  <rect x="600" y="432" width="176" height="1" fill="rgba(255,255,255,0.06)"/>
+  <text x="600" y="448" fill="rgba(255,255,255,0.35)" font-size="8">Services</text>
+  <text x="650" y="448" fill="rgba(255,255,255,0.35)" font-size="8">Portfolio</text>
+  <text x="704" y="448" fill="rgba(255,255,255,0.35)" font-size="8">Contact</text>
+</svg>

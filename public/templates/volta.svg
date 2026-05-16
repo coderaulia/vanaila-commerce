@@ -1,0 +1,97 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" font-family="system-ui, sans-serif">
+  <!-- Background -->
+  <rect width="800" height="500" fill="#FAFAF9"/>
+
+  <!-- Announce bar -->
+  <rect y="0" width="800" height="28" fill="#0A0A0A"/>
+  <text x="400" y="18" fill="rgba(255,255,255,0.8)" font-size="9" text-anchor="middle">◆ Free 2-day shipping on orders over $80 · ◆ Trade in your old device · up to $400 credit · ◆ 0% APR financing</text>
+
+  <!-- Nav -->
+  <rect y="28" width="800" height="48" fill="#FAFAF9"/>
+  <line x1="0" y1="76" x2="800" y2="76" stroke="rgba(10,10,10,0.08)" stroke-width="1"/>
+  <!-- Logo -->
+  <rect x="24" y="40" width="22" height="22" rx="5" fill="#0A0A0A"/>
+  <text x="35" y="55" fill="white" font-size="11" font-weight="700" text-anchor="middle">V</text>
+  <text x="54" y="55" fill="#0A0A0A" font-size="14" font-weight="600" letter-spacing="-0.5">VOLTA</text>
+  <!-- Nav links -->
+  <text x="280" y="55" fill="#1A1A1A" font-size="10" font-weight="500" text-anchor="middle">Phones</text>
+  <text x="340" y="55" fill="#1A1A1A" font-size="10" font-weight="500" text-anchor="middle">Audio</text>
+  <text x="396" y="55" fill="#1A1A1A" font-size="10" font-weight="500" text-anchor="middle">Wearables</text>
+  <text x="462" y="55" fill="#1A1A1A" font-size="10" font-weight="500" text-anchor="middle">Computing</text>
+  <text x="520" y="55" fill="#1A1A1A" font-size="10" font-weight="500" text-anchor="middle">Home</text>
+  <!-- Right icons -->
+  <circle cx="724" cy="52" r="13" fill="rgba(10,10,10,0.04)"/>
+  <text x="724" y="56" fill="#0A0A0A" font-size="12" text-anchor="middle">⌕</text>
+  <circle cx="756" cy="52" r="13" fill="rgba(10,10,10,0.04)"/>
+  <text x="756" y="56" fill="#0A0A0A" font-size="11" text-anchor="middle">◯</text>
+  <circle cx="776" cy="44" r="5" fill="#2A5BD7"/>
+  <text x="776" y="47" fill="white" font-size="6" font-weight="700" text-anchor="middle">2</text>
+
+  <!-- Hero -->
+  <!-- Ambient blob left -->
+  <circle cx="80" cy="200" r="100" fill="rgba(42,91,215,0.08)"/>
+  <!-- Ambient blob right -->
+  <circle cx="720" cy="160" r="80" fill="rgba(232,132,59,0.10)"/>
+
+  <!-- Badge -->
+  <rect x="300" y="90" width="200" height="20" rx="10" fill="rgba(42,91,215,0.08)"/>
+  <circle cx="316" cy="100" r="4" fill="#2A5BD7"/>
+  <text x="400" y="104" fill="#2A5BD7" font-size="9" font-weight="600" text-anchor="middle">New · Available Now</text>
+
+  <!-- Hero headline -->
+  <text x="400" y="160" fill="#0A0A0A" font-size="58" font-weight="600" letter-spacing="-3" text-anchor="middle">Pulse 12 Pro.</text>
+  <text x="400" y="188" fill="#6B6B6B" font-size="14" text-anchor="middle">Brighter. Quieter. Built to last the day, and then some.</text>
+
+  <!-- CTA row -->
+  <rect x="298" y="202" width="110" height="32" rx="16" fill="#2A5BD7"/>
+  <text x="353" y="222" fill="white" font-size="10" font-weight="500" text-anchor="middle">Buy from $899</text>
+  <rect x="418" y="202" width="84" height="32" rx="16" fill="none" stroke="#0A0A0A" stroke-width="1.5"/>
+  <text x="460" y="222" fill="#0A0A0A" font-size="10" font-weight="500" text-anchor="middle">Learn more →</text>
+
+  <!-- Hero product -->
+  <rect x="100" y="244" width="600" height="136" rx="20" fill="linear-gradient(135deg, #1A1F2A, #0D1117)"/>
+  <rect x="100" y="244" width="600" height="136" rx="20" fill="#0D1117"/>
+  <text x="400" y="316" fill="rgba(255,255,255,0.12)" font-size="11" text-anchor="middle" letter-spacing="4">HERO · PRODUCT IMAGE</text>
+
+  <!-- Specs pill -->
+  <rect x="242" y="368" width="316" height="44" rx="22" fill="white"/>
+  <rect x="242" y="368" width="316" height="44" rx="22" fill="none" stroke="rgba(10,10,10,0.06)" stroke-width="1"/>
+  <text x="321" y="388" fill="#0A0A0A" font-size="14" font-weight="600" text-anchor="middle">6.7</text>
+  <text x="321" y="401" fill="#6B6B6B" font-size="8" text-anchor="middle">"display</text>
+  <line x1="358" y1="378" x2="358" y2="402" stroke="rgba(10,10,10,0.08)" stroke-width="1"/>
+  <text x="397" y="388" fill="#0A0A0A" font-size="14" font-weight="600" text-anchor="middle">48</text>
+  <text x="397" y="401" fill="#6B6B6B" font-size="8" text-anchor="middle">MP camera</text>
+  <line x1="436" y1="378" x2="436" y2="402" stroke="rgba(10,10,10,0.08)" stroke-width="1"/>
+  <text x="477" y="388" fill="#0A0A0A" font-size="14" font-weight="600" text-anchor="middle">28</text>
+  <text x="477" y="401" fill="#6B6B6B" font-size="8" text-anchor="middle">hr battery</text>
+
+  <!-- Product cards row -->
+  <!-- Card 1 -->
+  <rect x="24" y="424" width="176" height="60" rx="12" fill="#FBE7E2"/>
+  <rect x="40" y="434" width="8" height="8" rx="2" fill="#C03A2B" fill-opacity="0.6"/>
+  <text x="56" y="441" fill="#6B6B6B" font-size="7" font-weight="600" letter-spacing="1">PULSE 12</text>
+  <text x="40" y="456" fill="#0A0A0A" font-size="11" font-weight="600">The everyday flagship.</text>
+  <text x="40" y="470" fill="#0A0A0A" font-size="9" font-weight="500">From $699</text>
+
+  <!-- Card 2 -->
+  <rect x="208" y="424" width="176" height="60" rx="12" fill="#E1EFE4"/>
+  <rect x="224" y="434" width="8" height="8" rx="2" fill="#1E5E3C" fill-opacity="0.6"/>
+  <text x="240" y="441" fill="#6B6B6B" font-size="7" font-weight="600" letter-spacing="1">PULSE 12 PRO</text>
+  <text x="224" y="456" fill="#0A0A0A" font-size="11" font-weight="600">A studio in your pocket.</text>
+  <text x="224" y="470" fill="#0A0A0A" font-size="9" font-weight="500">From $899</text>
+  <rect x="336" y="428" width="28" height="14" rx="7" fill="rgba(42,91,215,0.12)"/>
+  <text x="350" y="438" fill="#2A5BD7" font-size="7" font-weight="600" text-anchor="middle">New</text>
+
+  <!-- Card 3 -->
+  <rect x="392" y="424" width="176" height="60" rx="12" fill="#EFEEEC"/>
+  <rect x="408" y="434" width="8" height="8" rx="2" fill="#2A2A2A" fill-opacity="0.6"/>
+  <text x="424" y="441" fill="#6B6B6B" font-size="7" font-weight="600" letter-spacing="1">PULSE 12 ULTRA</text>
+  <text x="408" y="456" fill="#0A0A0A" font-size="11" font-weight="600">Medium format. Pocket.</text>
+  <text x="408" y="470" fill="#0A0A0A" font-size="9" font-weight="500">From $1,199</text>
+
+  <!-- Dark footer hint -->
+  <rect x="576" y="424" width="200" height="60" rx="12" fill="#0A0A0A"/>
+  <text x="676" y="447" fill="rgba(255,255,255,0.6)" font-size="8" text-anchor="middle">Shop · Audio · Wearables</text>
+  <text x="676" y="460" fill="rgba(255,255,255,0.35)" font-size="8" text-anchor="middle">Computing · Services · Support</text>
+  <text x="676" y="473" fill="rgba(255,255,255,0.2)" font-size="8" text-anchor="middle">© 2026 Volta · All rights reserved</text>
+</svg>

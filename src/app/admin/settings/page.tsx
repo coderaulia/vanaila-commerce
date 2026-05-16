@@ -790,9 +790,9 @@ function SettingsEditor() {
             <p style={{ marginBottom: 24, color: '#555' }}>
               Choose a template for your homepage. The template controls layout and design — your content blocks stay the same.
             </p>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 16 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 20 }}>
               {TEMPLATES.map((tpl) => {
-                const active = (settings.appearance?.templateId ?? 'vanaila') === tpl.id;
+                const active = (settings.appearance?.templateId ?? 'volta') === tpl.id;
                 return (
                   <button
                     key={tpl.id}
@@ -805,21 +805,55 @@ function SettingsEditor() {
                     }
                     style={{
                       textAlign: 'left',
-                      padding: 20,
-                      border: `2px solid ${active ? 'var(--primary, #0033FF)' : '#ddd'}`,
-                      borderRadius: 8,
-                      background: active ? 'var(--primary-soft, #f0f3ff)' : '#fff',
+                      padding: 0,
+                      border: `2px solid ${active ? 'var(--primary, #0033FF)' : '#e0e0e0'}`,
+                      borderRadius: 12,
+                      background: '#fff',
                       cursor: 'pointer',
-                      transition: 'border-color 0.15s'
+                      transition: 'border-color 0.15s, box-shadow 0.15s',
+                      overflow: 'hidden',
+                      boxShadow: active ? '0 0 0 3px rgba(0,51,255,0.12)' : 'none',
                     }}
                   >
-                    <strong style={{ display: 'block', marginBottom: 6, fontSize: '1rem' }}>
-                      {active ? '✓ ' : ''}{tpl.name}
-                    </strong>
-                    <span style={{ fontSize: '0.875rem', color: '#555', display: 'block', marginBottom: 6 }}>
-                      {tpl.description}
-                    </span>
-                    <span style={{ fontSize: '0.75rem', color: '#888' }}>{tpl.previewDescription}</span>
+                    {/* Preview image */}
+                    <div style={{
+                      width: '100%',
+                      aspectRatio: '8/5',
+                      background: '#f5f5f5',
+                      overflow: 'hidden',
+                      position: 'relative',
+                    }}>
+                      <img
+                        src={tpl.preview}
+                        alt={`${tpl.name} template preview`}
+                        style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                      />
+                      {active && (
+                        <span style={{
+                          position: 'absolute', top: 10, right: 10,
+                          background: 'var(--primary, #0033FF)', color: '#fff',
+                          borderRadius: 999, padding: '4px 10px',
+                          fontSize: 11, fontWeight: 600,
+                        }}>✓ Active</span>
+                      )}
+                    </div>
+                    {/* Card body */}
+                    <div style={{ padding: '14px 16px 16px' }}>
+                      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 4 }}>
+                        <strong style={{ fontSize: '1rem', color: '#111' }}>{tpl.name}</strong>
+                        <span style={{
+                          fontSize: 11, color: '#888',
+                          background: '#f0f0f0', borderRadius: 4,
+                          padding: '2px 7px', fontFamily: 'monospace',
+                        }}>v{tpl.version}</span>
+                      </div>
+                      <div style={{ fontSize: 11, color: '#2A5BD7', fontWeight: 500, marginBottom: 6 }}>
+                        by {tpl.author}
+                      </div>
+                      <span style={{ fontSize: '0.8125rem', color: '#555', display: 'block', lineHeight: 1.5 }}>
+                        {tpl.description}
+                      </span>
+                    </div>
                   </button>
                 );
               })}
