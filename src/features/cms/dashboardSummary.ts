@@ -1,3 +1,7 @@
+import { modules } from '@/config/modules';
+import { getStoreDashboardMetrics, type StoreDashboardMetrics } from '@/features/commerce/store';
+import { env } from '@/services/env';
+
 import { getAdminAuditLogs, type AdminAuditLogEntry } from './adminAuth';
 import { getAnalyticsSummary, type AnalyticsSummary } from './analyticsStore';
 import { getContentHealthReport } from './contentHealth';
@@ -33,6 +37,7 @@ export type DashboardSummary = {
   auditLogs: AdminAuditLogEntry[];
   analytics: AnalyticsSummary;
   health: ContentHealthReport;
+  storeMetrics: StoreDashboardMetrics | null;
 };
 
 function placeholderAsset(value: string) {
@@ -115,13 +120,17 @@ function buildScheduledItems(pages: LandingPage[], posts: BlogPost[]): Scheduled
 }
 
 export async function getDashboardSummary(): Promise<DashboardSummary> {
-  const [pagesMap, blogPosts, settings, auditLogs, analytics, health] = await Promise.all([
+  const storeMetricsPromise = modules.ENABLE_STORE_MODULE && env.databaseUrl
+    ? getStoreDashboardMetrics().catch(() => null)
+    : Promise.resolve(null);
+  const [pagesMap, blogPosts, settings, auditLogs, analytics, health, storeMetrics] = await Promise.all([
     contentStore.getPages(),
     contentStore.getBlogPosts(true),
     contentStore.getSettings(),
     getAdminAuditLogs(8),
     getAnalyticsSummary(30),
-    getContentHealthReport()
+    getContentHealthReport(),
+    storeMetricsPromise
   ]);
 
   const pages = Object.values(pagesMap);
@@ -132,6 +141,7 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
     scheduled: buildScheduledItems(pages, blogPosts),
     auditLogs,
     analytics,
-    health
+    health,
+    storeMetrics
   };
 }

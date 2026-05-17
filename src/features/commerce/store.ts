@@ -39,6 +39,27 @@ export type ProductQueryInput = {
   pageSize?: number;
 };
 
+export type StoreDashboardMetrics = {
+  revenue: number;
+  totalOrders: number;
+  openOrders: number;
+  paidOrders: number;
+  activeProducts: number;
+  draftProducts: number;
+  customers: number;
+  lowStockVariants: number;
+  lowStockThreshold: number;
+  recentOrders: Array<{
+    id: string;
+    orderNumber: string;
+    customerName: string;
+    status: OrderStatus;
+    paymentStatus: PaymentStatus;
+    total: number;
+    createdAt: string;
+  }>;
+};
+
 export async function queryProducts(input: ProductQueryInput = {}) {
   const db = getDb();
   const { status = 'all', categoryId, featured, q, page = 1, pageSize = 20 } = input;
@@ -86,6 +107,84 @@ export async function queryProducts(input: ProductQueryInput = {}) {
   }
 
   return { products, meta: { total: countResult[0]?.count ?? 0, page, pageSize } };
+}
+
+export async function getStoreDashboardMetrics(threshold = 5): Promise<StoreDashboardMetrics> {
+  const db = getDb();
+  const lowStockThreshold = Math.max(0, threshold);
+
+  const [
+    revenueResult,
+    orderResult,
+    openOrderResult,
+    paidOrderResult,
+    activeProductResult,
+    draftProductResult,
+    customerResult,
+    lowStockResult,
+    recentOrderRows
+  ] = await Promise.all([
+    db
+      .select({ total: sql<string>`coalesce(sum(${ordersTable.total}), 0)` })
+      .from(ordersTable)
+      .where(eq(ordersTable.paymentStatus, 'paid')),
+    db.select({ count: sql<number>`count(*)::int` }).from(ordersTable),
+    db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(ordersTable)
+      .where(inArray(ordersTable.status, ['pending_payment', 'paid', 'processing', 'shipped'])),
+    db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(ordersTable)
+      .where(eq(ordersTable.paymentStatus, 'paid')),
+    db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(productsTable)
+      .where(eq(productsTable.status, 'active')),
+    db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(productsTable)
+      .where(eq(productsTable.status, 'draft')),
+    db.select({ count: sql<number>`count(*)::int` }).from(customersTable),
+    db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(productVariantsTable)
+      .where(sql`${productVariantsTable.stock} <= ${lowStockThreshold}`),
+    db
+      .select({
+        id: ordersTable.id,
+        orderNumber: ordersTable.orderNumber,
+        customerName: ordersTable.shippingName,
+        status: ordersTable.status,
+        paymentStatus: ordersTable.paymentStatus,
+        total: ordersTable.total,
+        createdAt: ordersTable.createdAt
+      })
+      .from(ordersTable)
+      .orderBy(desc(ordersTable.createdAt))
+      .limit(6)
+  ]);
+
+  return {
+    revenue: Number(revenueResult[0]?.total ?? 0),
+    totalOrders: orderResult[0]?.count ?? 0,
+    openOrders: openOrderResult[0]?.count ?? 0,
+    paidOrders: paidOrderResult[0]?.count ?? 0,
+    activeProducts: activeProductResult[0]?.count ?? 0,
+    draftProducts: draftProductResult[0]?.count ?? 0,
+    customers: customerResult[0]?.count ?? 0,
+    lowStockVariants: lowStockResult[0]?.count ?? 0,
+    lowStockThreshold,
+    recentOrders: recentOrderRows.map((row) => ({
+      id: row.id,
+      orderNumber: row.orderNumber,
+      customerName: row.customerName,
+      status: row.status,
+      paymentStatus: row.paymentStatus,
+      total: Number(row.total),
+      createdAt: row.createdAt
+    }))
+  };
 }
 
 export async function getProductById(id: string): Promise<Product | null> {

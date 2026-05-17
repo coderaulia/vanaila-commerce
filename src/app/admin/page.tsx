@@ -6,10 +6,6 @@ import { useEffect, useMemo, useState } from 'react';
 import { AdminShell } from '@/components/AdminShell';
 import type { AdminSessionUser } from '@/features/cms/adminTypes';
 import type { DashboardSummary } from '@/features/cms/dashboardSummary';
-import {
-  getBlogPostPublicationLabel,
-  getLandingPagePublicationLabel
-} from '@/features/cms/publicationState';
 import type { AdminPermission } from '@/features/cms/types';
 import { csrfFetch } from '@/lib/clientCsrf';
 
@@ -22,80 +18,71 @@ type DashboardPreferences = {
   hiddenWidgets: string[];
 };
 
-const WIDGET_IDS = ['kpi', 'checklist', 'quick-actions', 'scheduled', 'analytics', 'health', 'audit'] as const;
+const WIDGET_IDS = ['store-kpi', 'quick-actions', 'store-activity', 'audit'] as const;
 type WidgetId = (typeof WIDGET_IDS)[number];
 
 const widgetLabels: Record<WidgetId, string> = {
-  kpi: 'KPI Overview',
-  checklist: 'First-run Checklist',
+  'store-kpi': 'Store Metrics',
   'quick-actions': 'Quick Actions',
-  scheduled: 'Scheduled Publishing',
-  analytics: 'Analytics Snapshot',
-  health: 'Content Health',
+  'store-activity': 'Store Activity',
   audit: 'Recent Audit Activity'
 };
 
 const quickActions = [
-  { href: '/admin/pages', label: 'Edit landing pages', permission: 'content:edit' },
-  { href: '/admin/blog', label: 'Manage posts', permission: 'content:edit' },
-  { href: '/admin/categories', label: 'Manage categories', permission: 'taxonomy:edit' },
-  { href: '/admin/media', label: 'Media library', permission: 'media:edit' },
-  { href: '/admin/team', label: 'Manage team', permission: 'team:manage' },
-  { href: '/admin/analytics', label: 'Analytics', permission: 'analytics:view' },
-  { href: '/admin/audit', label: 'Audit log', permission: 'audit:view' },
-  { href: '/admin/settings', label: 'Site settings', permission: 'settings:edit' }
+  { href: '/admin/products/new', label: 'Add product', permission: 'store:edit' },
+  { href: '/admin/products', label: 'Manage products', permission: 'store:edit' },
+  { href: '/admin/product-categories', label: 'Product categories', permission: 'store:edit' },
+  { href: '/admin/orders', label: 'Review orders', permission: 'store:manage_orders' },
+  { href: '/admin/customers', label: 'Customers', permission: 'store:manage_customers' },
+  { href: '/admin/settings', label: 'Store settings', permission: 'settings:edit' }
 ] satisfies Array<{ href: string; label: string; permission?: AdminPermission }>;
 
-type Metrics = {
-  publishedPages: number;
-  scheduledPages: number;
-  publishedPosts: number;
-  scheduledPosts: number;
-};
+type StoreMetrics = NonNullable<DashboardSummary['storeMetrics']>;
 
-function KpiWidget({ data, metrics }: { data: DashboardSummary; metrics: Metrics | null }) {
-  if (!metrics) return null;
+const formatCurrency = (value: number) =>
+  new Intl.NumberFormat('id-ID', {
+    style: 'currency',
+    currency: 'IDR',
+    maximumFractionDigits: 0
+  }).format(value);
+
+function resolveWidgetOrder(widgetOrder: string[]): WidgetId[] {
+  const validOrder = widgetOrder.filter((id): id is WidgetId => WIDGET_IDS.includes(id as WidgetId));
+  const missingWidgets = WIDGET_IDS.filter((id) => !validOrder.includes(id));
+  return [...validOrder, ...missingWidgets];
+}
+
+function KpiWidget({ metrics }: { metrics: StoreMetrics | null }) {
+  if (!metrics) {
+    return (
+      <section className="admin-card">
+        <h2>Store metrics</h2>
+        <p className="admin-subtle">Enable the store module with database mode to show revenue, order, customer, and inventory metrics.</p>
+      </section>
+    );
+  }
+
   return (
     <section className="admin-kpi-grid">
       <article className="admin-card">
-        <p className="admin-kpi-label">Published pages</p>
-        <p className="admin-kpi-value">
-          {metrics.publishedPages}/{data.pages.length}
-        </p>
+        <p className="admin-kpi-label">Paid revenue</p>
+        <p className="admin-kpi-value">{formatCurrency(metrics.revenue)}</p>
       </article>
       <article className="admin-card">
-        <p className="admin-kpi-label">Scheduled pages</p>
-        <p className="admin-kpi-value">{metrics.scheduledPages}</p>
+        <p className="admin-kpi-label">Open orders</p>
+        <p className="admin-kpi-value">{metrics.openOrders}</p>
+        <p className="admin-subtle">{metrics.totalOrders} total orders</p>
       </article>
       <article className="admin-card">
-        <p className="admin-kpi-label">Published posts</p>
-        <p className="admin-kpi-value">{metrics.publishedPosts}</p>
+        <p className="admin-kpi-label">Active products</p>
+        <p className="admin-kpi-value">{metrics.activeProducts}</p>
+        <p className="admin-subtle">{metrics.draftProducts} drafts</p>
       </article>
       <article className="admin-card">
-        <p className="admin-kpi-label">Scheduled posts</p>
-        <p className="admin-kpi-value">{metrics.scheduledPosts}</p>
+        <p className="admin-kpi-label">Customers</p>
+        <p className="admin-kpi-value">{metrics.customers}</p>
+        <p className="admin-subtle">{metrics.lowStockVariants} low-stock variants</p>
       </article>
-    </section>
-  );
-}
-
-function ChecklistWidget({ data }: { data: DashboardSummary }) {
-  return (
-    <section className="admin-card">
-      <div className="admin-inline-header">
-        <h2>First-run checklist</h2>
-        <span className="admin-subtle">
-          {data.checklist.filter((item) => item.done).length}/{data.checklist.length} complete
-        </span>
-      </div>
-      <ul className="admin-plain-list">
-        {data.checklist.map((item) => (
-          <li key={item.id}>
-            <strong>{item.done ? 'Done' : 'Pending'}: {item.label}</strong>
-            <span>{item.detail}</span>
-          </li>
-        ))}
-      </ul>
     </section>
   );
 }
@@ -122,88 +109,48 @@ function QuickActionsWidget({ user }: { user: AdminSessionUser }) {
   );
 }
 
-function ScheduledWidget({ data }: { data: DashboardSummary }) {
+function StoreActivityWidget({ metrics }: { metrics: StoreMetrics | null }) {
   return (
-    <article className="admin-card">
-      <div className="admin-inline-header">
-        <h2>Scheduled publishing</h2>
-        <span className="admin-subtle">{data.scheduled.length} items</span>
-      </div>
-      <ul className="admin-plain-list">
-        {data.scheduled.slice(0, 8).map((item) => (
-          <li key={`${item.type}-${item.id}`}>
-            <strong>{item.title}</strong>
-            <span>
-              {item.path} - {item.statusLabel}
-              {item.publishAt ? ` - publish ${new Date(item.publishAt).toLocaleString()}` : ''}
-              {item.unpublishAt ? ` - unpublish ${new Date(item.unpublishAt).toLocaleString()}` : ''}
-            </span>
-          </li>
-        ))}
-        {data.scheduled.length === 0 ? <li className="admin-subtle">No scheduled content yet.</li> : null}
-      </ul>
-    </article>
-  );
-}
-
-function AnalyticsWidget({ data }: { data: DashboardSummary }) {
-  return (
-    <article className="admin-card">
-      <div className="admin-inline-header">
-        <h2>Analytics snapshot</h2>
-        <Link href="/admin/analytics">Full report</Link>
-      </div>
-      {data.analytics.available ? (
+    <section className="admin-grid-2">
+      <article className="admin-card">
+        <div className="admin-inline-header">
+          <h2>Recent orders</h2>
+          <Link href="/admin/orders">View all</Link>
+        </div>
         <ul className="admin-plain-list">
-          <li>
-            <strong>{data.analytics.totals.pageViews30d}</strong>
-            <span>page views in the last 30 days</span>
-          </li>
-          <li>
-            <strong>{data.analytics.totals.uniqueVisitors30d}</strong>
-            <span>unique visitors in the last 30 days</span>
-          </li>
-          {data.analytics.topPaths.slice(0, 3).map((item) => (
-            <li key={`${item.entityType}-${item.path}`}>
-              <strong>{item.path}</strong>
-              <span>{item.views} views - {item.visitors} visitors</span>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p className="admin-subtle">Analytics becomes available automatically in database mode.</p>
-      )}
-    </article>
-  );
-}
-
-function HealthWidget({ data }: { data: DashboardSummary }) {
-  return (
-    <section className="admin-card">
-      <div className="admin-inline-header">
-        <h2>Content health</h2>
-        <span className="admin-subtle">
-          {data.health.errors} errors / {data.health.warnings} warnings
-        </span>
-      </div>
-      {data.health.items.length > 0 ? (
-        <ul className="admin-plain-list">
-          {data.health.items.slice(0, 8).map((item) => (
-            <li key={item.id}>
+          {metrics?.recentOrders.map((order) => (
+            <li key={order.id}>
               <strong>
-                <span className={`admin-chip ${item.severity === 'error' ? 'admin-chip-danger' : 'admin-chip-warning'}`}>
-                  {item.severity}
-                </span>{' '}
-                {item.label}
+                <Link href={`/admin/orders/${order.id}`}>{order.orderNumber}</Link>
               </strong>
-              <span>{item.detail}</span>
-              <Link href={item.href}>Open fix</Link>
+              <span>
+                {order.customerName} - {formatCurrency(order.total)} - {order.status.replaceAll('_', ' ')} / {order.paymentStatus}
+              </span>
             </li>
           ))}
+          {!metrics || metrics.recentOrders.length === 0 ? <li className="admin-subtle">No orders yet.</li> : null}
         </ul>
-      ) : (
-        <p className="admin-subtle">No content health issues detected in the current CMS data.</p>
-      )}
+      </article>
+      <article className="admin-card">
+        <div className="admin-inline-header">
+          <h2>Inventory watch</h2>
+          <Link href="/admin/products">Manage products</Link>
+        </div>
+        <ul className="admin-plain-list">
+          <li>
+            <strong>{metrics?.lowStockVariants ?? 0} variants</strong>
+            <span>at or below {metrics?.lowStockThreshold ?? 5} units</span>
+          </li>
+          <li>
+            <strong>{metrics?.paidOrders ?? 0} paid orders</strong>
+            <span>included in revenue</span>
+          </li>
+          <li>
+            <strong>{metrics?.draftProducts ?? 0} draft products</strong>
+            <span>not visible in the public store</span>
+          </li>
+        </ul>
+      </article>
     </section>
   );
 }
@@ -258,19 +205,10 @@ function DashboardPanel({ user }: DashboardPanelProps) {
       .catch(() => {});
   }, []);
 
-  const metrics = useMemo(() => {
-    if (!data) return null;
-    const publishedPages = data.pages.filter((page) => getLandingPagePublicationLabel(page) === 'published').length;
-    const scheduledPages = data.pages.filter((page) => getLandingPagePublicationLabel(page) === 'scheduled').length;
-    const publishedPosts = data.blogPosts.filter((post) => getBlogPostPublicationLabel(post) === 'published').length;
-    const scheduledPosts = data.blogPosts.filter((post) => getBlogPostPublicationLabel(post) === 'scheduled').length;
-    return { publishedPages, scheduledPages, publishedPosts, scheduledPosts };
-  }, [data]);
-
   const orderedWidgets = useMemo(() => {
-    const order = preferences.widgetOrder.length > 0 ? preferences.widgetOrder : [...WIDGET_IDS];
+    const order = resolveWidgetOrder(preferences.widgetOrder);
     const hidden = new Set(preferences.hiddenWidgets);
-    return order.filter((id) => !hidden.has(id)) as WidgetId[];
+    return order.filter((id) => !hidden.has(id));
   }, [preferences]);
 
   const toggleWidget = (widgetId: WidgetId) => {
@@ -284,7 +222,7 @@ function DashboardPanel({ user }: DashboardPanelProps) {
 
   const moveWidget = (widgetId: WidgetId, direction: 'up' | 'down') => {
     setPreferences((prev) => {
-      const order = prev.widgetOrder.length > 0 ? [...prev.widgetOrder] : [...WIDGET_IDS];
+      const order = resolveWidgetOrder(prev.widgetOrder);
       const idx = order.indexOf(widgetId);
       if (idx === -1) return prev;
 
@@ -312,27 +250,16 @@ function DashboardPanel({ user }: DashboardPanelProps) {
   };
 
   if (error) return <p className="error">{error}</p>;
-  if (!data || !metrics) return <p>Loading dashboard...</p>;
+  if (!data) return <p>Loading dashboard...</p>;
 
   const renderWidget = (widgetId: WidgetId) => {
     switch (widgetId) {
-      case 'kpi':
-        return <KpiWidget key="kpi" data={data} metrics={metrics} />;
-      case 'checklist':
-        return <ChecklistWidget key="checklist" data={data} />;
+      case 'store-kpi':
+        return <KpiWidget key="store-kpi" metrics={data.storeMetrics} />;
       case 'quick-actions':
         return <QuickActionsWidget key="quick-actions" user={user} />;
-      case 'scheduled':
-        return (
-          <section key="scheduled" className="admin-grid-2">
-            <ScheduledWidget data={data} />
-            <AnalyticsWidget data={data} />
-          </section>
-        );
-      case 'analytics':
-        return null;
-      case 'health':
-        return <HealthWidget key="health" data={data} />;
+      case 'store-activity':
+        return <StoreActivityWidget key="store-activity" metrics={data.storeMetrics} />;
       case 'audit':
         return <AuditWidget key="audit" data={data} />;
       default:
@@ -358,7 +285,7 @@ function DashboardPanel({ user }: DashboardPanelProps) {
           </div>
           <div className="admin-widget-settings">
             <div className="admin-widget-list">
-              {(preferences.widgetOrder.length > 0 ? preferences.widgetOrder : [...WIDGET_IDS]).map((widgetId) => {
+              {resolveWidgetOrder(preferences.widgetOrder).map((widgetId) => {
                 const id = widgetId as WidgetId;
                 const isHidden = preferences.hiddenWidgets.includes(id);
                 return (
@@ -415,7 +342,7 @@ function DashboardPanel({ user }: DashboardPanelProps) {
 
 export default function AdminDashboardPage() {
   return (
-    <AdminShell title="Dashboard" description="Content operations, onboarding, analytics, and publishing control center.">
+    <AdminShell title="Dashboard" description="Store revenue, orders, products, customers, and inventory at a glance.">
       {(user) => <DashboardPanel user={user} />}
     </AdminShell>
   );
