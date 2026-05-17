@@ -8,11 +8,9 @@ type Props = {
 };
 
 const SHOP_LINKS = [
+  { href: '/categories', label: 'All Categories' },
   { href: '/shop?tag=new', label: 'New Arrivals' },
   { href: '/shop?featured=true', label: 'Best Sellers' },
-  { href: '/shop?category=mens', label: 'Mens Collection' },
-  { href: '/shop?category=womens', label: 'Womens Collection' },
-  { href: '/shop?category=accessories', label: 'Accessories' },
 ];
 
 const HELP_LINKS = [

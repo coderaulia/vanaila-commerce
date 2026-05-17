@@ -15,7 +15,7 @@ type Props = {
 const NAV_LINKS = [
   { href: '/shop', label: 'SHOP' },
   { href: '/shop?tag=new', label: 'NEW ARRIVALS' },
-  { href: '/shop', label: 'COLLECTIONS' },
+  { href: '/categories', label: 'CATEGORIES' },
   { href: '/about', label: 'ABOUT' },
 ];
 

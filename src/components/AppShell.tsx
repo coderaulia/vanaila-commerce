@@ -38,6 +38,8 @@ export function AppShell({ siteName, navItems, settings, children }: AppShellPro
 
   const isStoreRoute =
     (modules.ENABLE_STORE_MODULE && pathname === '/') ||
+    pathname === '/categories' ||
+    pathname.startsWith('/categories/') ||
     pathname === '/shop' ||
     pathname.startsWith('/shop/') ||
     pathname === '/cart' ||

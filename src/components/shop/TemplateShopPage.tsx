@@ -21,11 +21,19 @@ type ProductListPayload = {
 type TemplateShopPageProps = {
   template: TemplateId;
   page?: LandingPage | null;
+  initialCategory?: string;
+  categoryCopy?: {
+    eyebrow: string;
+    title: string;
+    description: string;
+  };
 };
 
 const rupiah = (price: number) => `Rp ${price.toLocaleString('id-ID')}`;
 
-function getStorefrontCopy(page?: LandingPage | null) {
+function getStorefrontCopy(page?: LandingPage | null, override?: TemplateShopPageProps['categoryCopy']) {
+  if (override) return override;
+
   const hero = page?.homeBlocks?.find((block): block is HeroBlock => block.enabled && block.type === 'hero');
 
   return {
@@ -39,21 +47,21 @@ function firstVariant(product: Product): ProductVariant | undefined {
   return product.variants?.[0];
 }
 
-function useShopProducts() {
+function useShopProducts(initialCategory = '') {
   const [data, setData] = useState<ProductListPayload | null>(null);
   const [categories, setCategories] = useState<ProductCategory[]>([]);
   const [loading, setLoading] = useState(true);
-  const [category, setCategory] = useState('');
+  const [category, setCategory] = useState(initialCategory);
   const [q, setQ] = useState('');
   const [featuredOnly, setFeaturedOnly] = useState(false);
   const [page, setPage] = useState(1);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    setCategory(params.get('categoryId') || params.get('category') || '');
+    setCategory(params.get('categoryId') || params.get('category') || initialCategory);
     setFeaturedOnly(params.get('featured') === 'true');
     setQ(params.get('q') || '');
-  }, []);
+  }, [initialCategory]);
 
   useEffect(() => {
     fetch('/api/store/categories')
@@ -242,9 +250,17 @@ function JavanesaProductCard({ product, index }: { product: Product; index: numb
   );
 }
 
-export function VoltaShopPage({ page }: { page?: LandingPage | null }) {
-  const shop = useShopProducts();
-  const copy = getStorefrontCopy(page);
+export function VoltaShopPage({
+  page,
+  initialCategory,
+  categoryCopy,
+}: {
+  page?: LandingPage | null;
+  initialCategory?: string;
+  categoryCopy?: TemplateShopPageProps['categoryCopy'];
+}) {
+  const shop = useShopProducts(initialCategory);
+  const copy = getStorefrontCopy(page, categoryCopy);
   const products = shop.data?.products ?? [];
   const featured = products.find((product) => product.featured) ?? products[0] ?? null;
   const featuredVariant = featured ? firstVariant(featured) : undefined;
@@ -334,9 +350,17 @@ export function VoltaShopPage({ page }: { page?: LandingPage | null }) {
   );
 }
 
-export function JavanesaShopPage({ page }: { page?: LandingPage | null }) {
-  const shop = useShopProducts();
-  const copy = getStorefrontCopy(page);
+export function JavanesaShopPage({
+  page,
+  initialCategory,
+  categoryCopy,
+}: {
+  page?: LandingPage | null;
+  initialCategory?: string;
+  categoryCopy?: TemplateShopPageProps['categoryCopy'];
+}) {
+  const shop = useShopProducts(initialCategory);
+  const copy = getStorefrontCopy(page, categoryCopy);
   const products = shop.data?.products ?? [];
 
   return (
@@ -408,7 +432,7 @@ export function JavanesaShopPage({ page }: { page?: LandingPage | null }) {
   );
 }
 
-export function TemplateShopPage({ template, page }: TemplateShopPageProps) {
-  if (template === 'javanesa') return <JavanesaShopPage page={page} />;
-  return <VoltaShopPage page={page} />;
+export function TemplateShopPage({ template, page, initialCategory, categoryCopy }: TemplateShopPageProps) {
+  if (template === 'javanesa') return <JavanesaShopPage page={page} initialCategory={initialCategory} categoryCopy={categoryCopy} />;
+  return <VoltaShopPage page={page} initialCategory={initialCategory} categoryCopy={categoryCopy} />;
 }

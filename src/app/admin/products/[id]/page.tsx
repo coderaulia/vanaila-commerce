@@ -42,7 +42,7 @@ function RichTextEditor({ value, onChange }: RichTextEditorProps) {
 
   useEffect(() => {
     if (value !== lastValue.current) setEditorContent(value);
-  }, [value]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [value]);
 
   useEffect(() => {
     setEditorContent(value);

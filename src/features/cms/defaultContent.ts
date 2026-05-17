@@ -289,6 +289,7 @@ export const defaultContent: CmsContent = {
       headerLinks: [
         { id: 'nav-home', label: 'Home', href: '/', enabled: true },
         { id: 'nav-about', label: 'About', href: '/about', enabled: true },
+        { id: 'nav-categories', label: 'Categories', href: '/categories', enabled: true },
         { id: 'nav-shop', label: 'Shop', href: '/shop', enabled: true },
         { id: 'nav-insights', label: 'Insights', href: '/blog', enabled: true }
       ],
@@ -297,6 +298,7 @@ export const defaultContent: CmsContent = {
       footerNavigatorLinks: [
         { id: 'footer-nav-home', label: 'Home', href: '/', enabled: true },
         { id: 'footer-nav-about', label: 'About Us', href: '/about', enabled: true },
+        { id: 'footer-nav-categories', label: 'Categories', href: '/categories', enabled: true },
         { id: 'footer-nav-shop', label: 'Shop', href: '/shop', enabled: true },
         { id: 'footer-nav-insights', label: 'Insights', href: '/blog', enabled: true },
         { id: 'footer-nav-contact', label: 'Contact', href: '/contact', enabled: true }
@@ -559,7 +561,6 @@ Draft quickly, review carefully, then publish with SEO checks.`,
     )
   ]
 };
-
 
 
 

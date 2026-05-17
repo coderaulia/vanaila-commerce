@@ -5,6 +5,7 @@ import {
   getPublishedPages,
   getSiteSettings
 } from '@/features/cms/publicApi';
+import { modules } from '@/config/modules';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const [settings, pages, posts] = await Promise.all([
@@ -42,5 +43,29 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       }))
     : [];
 
-  return [...pageEntries, ...blogEntries];
+  let storeEntries: MetadataRoute.Sitemap = [];
+
+  if (modules.ENABLE_STORE_MODULE) {
+    try {
+      const { getProductCategories } = await import('@/features/commerce/store');
+      const categories = await getProductCategories();
+      storeEntries = [
+        {
+          url: `${settings.baseUrl}/categories`,
+          changeFrequency: 'weekly',
+          priority: 0.7,
+        },
+        ...categories.map((category) => ({
+          url: `${settings.baseUrl}/categories/${category.slug}`,
+          lastModified: withLastModified ? category.updatedAt : undefined,
+          changeFrequency: 'weekly' as const,
+          priority: 0.65,
+        })),
+      ];
+    } catch {
+      storeEntries = [];
+    }
+  }
+
+  return [...pageEntries, ...blogEntries, ...storeEntries];
 }

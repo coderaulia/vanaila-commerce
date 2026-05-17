@@ -195,7 +195,6 @@ export function JavanesaHome({ page, settings, products = [], categories = [] }:
               </div>
             </div>
             <div className="relative h-96 lg:h-auto z-10">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 alt="Organic skincare products on volcanic stones"
                 className="absolute inset-0 w-full h-full object-cover rounded-tl-[100px] rounded-bl-sm lg:rounded-bl-[150px] shadow-2xl"
@@ -234,11 +233,10 @@ export function JavanesaHome({ page, settings, products = [], categories = [] }:
             {categories.map((cat, i) => {
               const shape = CATEGORY_SHAPES[i % CATEGORY_SHAPES.length];
               return (
-                <Link key={cat.id} href={`/shop?category=${cat.slug}`} className={`group flex flex-col items-center text-center ${shape.offset ? 'mt-0 md:mt-12' : ''}`}>
+                <Link key={cat.id} href={`/categories/${cat.slug}`} className={`group flex flex-col items-center text-center ${shape.offset ? 'mt-0 md:mt-12' : ''}`}>
                   <div
                     className={`relative w-40 h-56 md:w-48 md:h-64 mb-6 overflow-hidden ${shape.borderRadius} transition-all duration-700 ${shape.hoverRadius} border-4 border-surface-light dark:border-surface-dark group-hover:border-primary/20 p-2`}
                   >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       alt={cat.name}
                       className={`w-full h-full object-cover ${shape.imgRadius} transition-transform duration-700 group-hover:scale-110`}
@@ -258,7 +256,6 @@ export function JavanesaHome({ page, settings, products = [], categories = [] }:
       <section className="bg-surface-light dark:bg-surface-dark">
         <div className="flex flex-col lg:flex-row">
           <div className="w-full lg:w-1/2 h-96 lg:h-auto min-h-[500px] relative">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               alt="Woman applying skincare cream"
               className="absolute inset-0 w-full h-full object-cover"
@@ -308,7 +305,6 @@ export function JavanesaHome({ page, settings, products = [], categories = [] }:
                     <button className="absolute top-4 right-4 text-gray-400 hover:text-red-500 transition-colors z-10" type="button" aria-label="Add to wishlist" onClick={(e) => e.preventDefault()}>
                       <Heart size={20} />
                     </button>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       alt={product.title}
                       className="max-h-full object-contain transition-transform duration-500 group-hover:scale-105"

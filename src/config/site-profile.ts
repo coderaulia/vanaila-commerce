@@ -15,7 +15,7 @@ export const siteProfile = {
     ]
   },
   routing: {
-    reservedSlugs: ['admin', 'api', 'blog', 'sitemap.xml', 'robots.txt', 'shop', 'cart', 'checkout'] as const
+    reservedSlugs: ['admin', 'api', 'blog', 'sitemap.xml', 'robots.txt', 'shop', 'categories', 'cart', 'checkout'] as const
   }
 } as const;
 

@@ -12,11 +12,15 @@ type ProductListPayload = {
   meta: { total: number; page: number; pageSize: number };
 };
 
-export function ShopGrid() {
+type ShopGridProps = {
+  initialCategoryId?: string;
+};
+
+export function ShopGrid({ initialCategoryId = '' }: ShopGridProps) {
   const [data, setData] = useState<ProductListPayload | null>(null);
   const [categories, setCategories] = useState<ProductCategory[]>([]);
   const [loading, setLoading] = useState(true);
-  const [categoryId, setCategoryId] = useState('');
+  const [categoryId, setCategoryId] = useState(initialCategoryId);
   const [q, setQ] = useState('');
   const [page, setPage] = useState(1);
 
