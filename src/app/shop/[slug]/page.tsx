@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation';
 
 import { modules } from '@/config/modules';
-import { getProductBySlug, queryProducts } from '@/features/commerce/store';
+import { getApprovedProductReviews, getProductBySlug, queryProducts } from '@/features/commerce/store';
 import { getSiteSettings } from '@/features/cms/publicApi';
 import { buildCanonical } from '@/features/cms/seo';
 
@@ -46,11 +46,14 @@ export default async function ShopProductPage({ params }: Props) {
   const { slug } = await params;
   const product = await getProductBySlug(slug);
   if (!product || product.status !== 'active') notFound();
-  const relatedPayload = await queryProducts({
-    status: 'active',
-    categoryId: product.categoryId ?? undefined,
-    pageSize: 5
-  });
+  const [relatedPayload, reviews] = await Promise.all([
+    queryProducts({
+      status: 'active',
+      categoryId: product.categoryId ?? undefined,
+      pageSize: 5
+    }),
+    getApprovedProductReviews(product.id)
+  ]);
   let relatedProducts = relatedPayload.products.filter((item) => item.id !== product.id).slice(0, 4);
 
   if (relatedProducts.length < 4) {
@@ -64,7 +67,7 @@ export default async function ShopProductPage({ params }: Props) {
 
   return (
     <main>
-      <ProductDetail product={product} relatedProducts={relatedProducts} />
+      <ProductDetail product={product} relatedProducts={relatedProducts} reviews={reviews} />
     </main>
   );
 }

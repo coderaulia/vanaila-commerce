@@ -15,7 +15,8 @@ const storeLinks: Array<{ href: string; label: string; permission?: AdminPermiss
   { href: '/admin/product-categories', label: 'Product Categories', permission: 'store:edit' },
   { href: '/admin/orders', label: 'Orders', permission: 'store:manage_orders' },
   { href: '/admin/customers', label: 'Customers', permission: 'store:manage_customers' },
-  { href: '/admin/coupons', label: 'Coupons', permission: 'store:edit' }
+  { href: '/admin/coupons', label: 'Coupons', permission: 'store:edit' },
+  { href: '/admin/reviews', label: 'Reviews', permission: 'store:edit' }
 ];
 
 function initialsForUser(user: AdminSessionUser) {

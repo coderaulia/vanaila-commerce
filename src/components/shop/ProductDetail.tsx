@@ -2,22 +2,24 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
+import type { FormEvent } from 'react';
 
 import { addToCart } from '@/features/commerce/cartStore';
-import type { Product, ProductVariant } from '@/features/commerce/types';
+import type { Product, ProductReview, ProductVariant } from '@/features/commerce/types';
 import { sanitizeProductDescriptionHtml } from './productDetailHtml';
 
 type Props = {
   product: Product;
   relatedProducts?: Product[];
+  reviews?: ProductReview[];
 };
 
-type ProductReview = {
+type DisplayReview = {
   id: string;
   author: string;
-  rating: number | null;
-  title: string;
+  rating: number;
   body: string;
+  createdAt: string;
 };
 
 function formatRupiah(value: number): string {
@@ -28,24 +30,14 @@ function getProductPrice(product: Product): number | null {
   return product.variants?.find((variant) => variant.price > 0)?.price ?? product.variants?.[0]?.price ?? null;
 }
 
-function getProductReviews(product: Product): ProductReview[] {
-  const source = (product as Product & { reviews?: unknown }).reviews;
-  if (!Array.isArray(source)) return [];
-
-  return source.flatMap((item, index) => {
-    if (!item || typeof item !== 'object') return [];
-    const review = item as Record<string, unknown>;
-    const body = String(review.body ?? review.content ?? review.comment ?? '').trim();
-    if (!body) return [];
-    const ratingValue = Number(review.rating);
-    return [{
-      id: String(review.id ?? index),
-      author: String(review.author ?? review.name ?? 'Verified buyer').trim() || 'Verified buyer',
-      rating: Number.isFinite(ratingValue) ? Math.max(1, Math.min(5, ratingValue)) : null,
-      title: String(review.title ?? '').trim(),
-      body
-    }];
-  });
+function getProductReviews(reviews: ProductReview[]): DisplayReview[] {
+  return reviews.map((review) => ({
+    id: review.id,
+    author: review.authorName || 'Verified buyer',
+    rating: Math.max(1, Math.min(5, review.rating)),
+    body: review.body,
+    createdAt: review.createdAt
+  }));
 }
 
 function ProductDescription({ html }: { html: string }) {
@@ -94,12 +86,17 @@ function RelatedProductCard({ product }: { product: Product }) {
   );
 }
 
-export function ProductDetail({ product, relatedProducts = [] }: Props) {
+export function ProductDetail({ product, relatedProducts = [], reviews: initialReviews = [] }: Props) {
   const variants = product.variants || [];
   const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(variants[0] || null);
   const [selectedImage, setSelectedImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [added, setAdded] = useState(false);
+  const [reviewName, setReviewName] = useState('');
+  const [reviewEmail, setReviewEmail] = useState('');
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewBody, setReviewBody] = useState('');
+  const [reviewStatus, setReviewStatus] = useState<'idle' | 'submitting' | 'submitted' | 'error'>('idle');
 
   const handleAddToCart = () => {
     if (!selectedVariant) return;
@@ -112,7 +109,34 @@ export function ProductDetail({ product, relatedProducts = [] }: Props) {
     selectedVariant?.compareAtPrice && selectedVariant.compareAtPrice > selectedVariant.price;
   const inStock = selectedVariant ? selectedVariant.stock > 0 : false;
   const optionKeys = variants[0]?.options ? Object.keys(variants[0].options) : [];
-  const reviews = getProductReviews(product);
+  const reviews = getProductReviews(initialReviews);
+
+  const handleSubmitReview = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setReviewStatus('submitting');
+
+    const res = await fetch('/api/store/reviews', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        productId: product.id,
+        authorName: reviewName,
+        authorEmail: reviewEmail,
+        rating: reviewRating,
+        body: reviewBody
+      })
+    });
+
+    if (res.ok) {
+      setReviewName('');
+      setReviewEmail('');
+      setReviewRating(5);
+      setReviewBody('');
+      setReviewStatus('submitted');
+    } else {
+      setReviewStatus('error');
+    }
+  };
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
@@ -336,31 +360,107 @@ export function ProductDetail({ product, relatedProducts = [] }: Props) {
         </div>
       </div>
 
-      {reviews.length > 0 && (
-        <section className="mt-20 border-t border-gray-100 pt-10">
-          <div className="mb-8 flex items-end justify-between gap-4">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-[0.24em] text-gray-400">Customer Notes</p>
-              <h2 className="mt-2 text-2xl font-bold uppercase text-black">Review</h2>
-            </div>
-            <p className="text-sm text-gray-500">{reviews.length} available</p>
+      <section className="mt-20 border-t border-gray-100 pt-10">
+        <div className="mb-8 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.24em] text-gray-400">Customer Notes</p>
+            <h2 className="mt-2 text-2xl font-bold uppercase text-black">Reviews</h2>
           </div>
+          <p className="text-sm text-gray-500">{reviews.length} approved</p>
+        </div>
+
+        {reviews.length > 0 ? (
           <div className="grid gap-4 md:grid-cols-3">
             {reviews.map((review) => (
               <article key={review.id} className="border border-gray-200 bg-white p-5">
-                {review.rating != null ? (
-                  <p className="mb-3 text-sm font-semibold tracking-[0.2em] text-black">
-                    {'★'.repeat(review.rating)}{'☆'.repeat(5 - review.rating)}
-                  </p>
-                ) : null}
-                {review.title ? <h3 className="mb-2 text-sm font-bold uppercase text-black">{review.title}</h3> : null}
+                <p className="mb-3 text-sm font-semibold tracking-[0.2em] text-black">
+                  {'★'.repeat(review.rating)}{'☆'.repeat(5 - review.rating)}
+                </p>
                 <p className="text-sm leading-relaxed text-gray-600">{review.body}</p>
-                <p className="mt-4 text-xs font-bold uppercase tracking-widest text-gray-400">{review.author}</p>
+                <div className="mt-4 flex items-center justify-between gap-3 text-xs font-bold uppercase tracking-widest text-gray-400">
+                  <span>{review.author}</span>
+                  <span>{new Date(review.createdAt).toLocaleDateString('id-ID')}</span>
+                </div>
               </article>
             ))}
           </div>
-        </section>
-      )}
+        ) : (
+          <p className="text-sm text-gray-500">No approved reviews yet.</p>
+        )}
+
+        <form onSubmit={handleSubmitReview} className="mt-10 border border-gray-200 p-5">
+          <div className="mb-8 flex items-end justify-between gap-4">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.24em] text-gray-400">Share Feedback</p>
+              <h3 className="mt-2 text-lg font-bold uppercase text-black">Write a Review</h3>
+            </div>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <label className="text-xs font-bold uppercase tracking-widest text-gray-500">
+              Name
+              <input
+                type="text"
+                value={reviewName}
+                onChange={(event) => setReviewName(event.target.value)}
+                className="mt-2 w-full border border-gray-300 px-3 py-2 text-sm font-normal normal-case tracking-normal text-black outline-none focus:border-black"
+                required
+              />
+            </label>
+            <label className="text-xs font-bold uppercase tracking-widest text-gray-500">
+              Email
+              <input
+                type="email"
+                value={reviewEmail}
+                onChange={(event) => setReviewEmail(event.target.value)}
+                className="mt-2 w-full border border-gray-300 px-3 py-2 text-sm font-normal normal-case tracking-normal text-black outline-none focus:border-black"
+                required
+              />
+            </label>
+          </div>
+
+          <label className="mt-4 block text-xs font-bold uppercase tracking-widest text-gray-500">
+            Rating
+            <select
+              value={reviewRating}
+              onChange={(event) => setReviewRating(Number(event.target.value))}
+              className="mt-2 w-full border border-gray-300 px-3 py-2 text-sm font-normal normal-case tracking-normal text-black outline-none focus:border-black md:w-48"
+            >
+              <option value={5}>5 stars</option>
+              <option value={4}>4 stars</option>
+              <option value={3}>3 stars</option>
+              <option value={2}>2 stars</option>
+              <option value={1}>1 star</option>
+            </select>
+          </label>
+
+          <label className="mt-4 block text-xs font-bold uppercase tracking-widest text-gray-500">
+            Review
+            <textarea
+              value={reviewBody}
+              onChange={(event) => setReviewBody(event.target.value)}
+              className="mt-2 min-h-32 w-full border border-gray-300 px-3 py-2 text-sm font-normal normal-case tracking-normal text-black outline-none focus:border-black"
+              required
+            />
+          </label>
+
+          <div className="mt-5 flex flex-wrap items-center gap-3">
+            <button
+              type="submit"
+              disabled={reviewStatus === 'submitting'}
+              className="bg-black px-5 py-3 text-xs font-bold uppercase tracking-widest text-white disabled:opacity-50"
+            >
+              {reviewStatus === 'submitting' ? 'Submitting...' : 'Submit Review'}
+            </button>
+            {reviewStatus === 'submitted' ? (
+              <p className="text-sm text-green-700">Review submitted for moderation.</p>
+            ) : null}
+            {reviewStatus === 'error' ? (
+              <p className="text-sm text-red-600">Review could not be submitted.</p>
+            ) : null}
+          </div>
+        </form>
+      </section>
 
       {relatedProducts.length > 0 && (
         <section className="mt-20 border-t border-gray-100 pt-10">

@@ -29,12 +29,11 @@ This plan is ordered by production risk first, then by user-facing commerce gaps
 | 9 | Coupon Admin UI | Done | `/admin/coupons` plus `GET/POST /api/admin/coupons` and `PUT/DELETE /api/admin/coupons/[id]` are implemented. |
 | 10 | Order Search by Product Name | Done | Admin order search now matches order number, customer name, item product title, variant name, SKU, and current product/variant rows. |
 | 11 | Inventory Log Viewer | Done | `/admin/products/[id]/inventory` and `GET /api/admin/products/[id]/inventory` show stock changes, reason, order reference, and variant SKU. |
-| 12 | Product Reviews & Ratings | Next | Add `product_reviews`, public approved reviews on product detail, review submission, and admin moderation queue. |
-| 13 | Wishlist / Save for Later | Backlog | Client-side wishlist first with `localStorage` key `vanaila_wishlist`, heart controls, and `/wishlist` page. |
+| 12 | Product Reviews & Ratings | Done | Added `product_reviews`, public review submission, approved reviews on product detail, and `/admin/reviews` moderation. |
+| 13 | Wishlist / Save for Later | Next | Client-side wishlist first with `localStorage` key `vanaila_wishlist`, heart controls, and `/wishlist` page. |
 
 ## Execution Order
 
 1. Complete external production blocker checks in the target environment.
-2. Implement Product Reviews & Ratings.
-3. Implement Wishlist / Save for Later.
-4. Run `npm run check` and `npm run build` after each feature slice.
+2. Implement Wishlist / Save for Later.
+3. Run `npm run check` and `npm run build` after each feature slice.

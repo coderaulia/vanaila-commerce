@@ -294,6 +294,7 @@ import type {
   OrderStatus,
   PaymentMethod,
   PaymentStatus,
+  ProductReviewStatus,
   ProductStatus
 } from '@/features/commerce/types';
 
@@ -453,6 +454,28 @@ export const inventoryLogsTable = pgTable(
   (table) => ({
     variantIdx: index('inventory_logs_variant_idx').on(table.variantId),
     createdAtIdx: index('inventory_logs_created_at_idx').on(table.createdAt)
+  })
+);
+
+export const productReviewsTable = pgTable(
+  'product_reviews',
+  {
+    id: text('id').primaryKey(),
+    productId: text('product_id').notNull(),
+    customerId: text('customer_id'),
+    authorName: text('author_name').notNull(),
+    authorEmail: text('author_email').notNull(),
+    rating: integer('rating').notNull(),
+    body: text('body').notNull(),
+    status: text('status').$type<ProductReviewStatus>().notNull().default('pending'),
+    reviewedAt: timestamp('reviewed_at', { withTimezone: true, mode: 'string' }),
+    createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' }).notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'string' }).notNull()
+  },
+  (table) => ({
+    productIdx: index('product_reviews_product_idx').on(table.productId),
+    statusIdx: index('product_reviews_status_idx').on(table.status),
+    createdAtIdx: index('product_reviews_created_at_idx').on(table.createdAt)
   })
 );
 

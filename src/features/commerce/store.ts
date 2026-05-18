@@ -11,6 +11,7 @@ import {
   orderItemsTable,
   ordersTable,
   productCategoriesTable,
+  productReviewsTable,
   productVariantsTable,
   productsTable
 } from '@/db/schema';
@@ -25,6 +26,8 @@ import type {
   Product,
   ProductCategory,
   InventoryLog,
+  ProductReview,
+  ProductReviewStatus,
   ProductVariant
 } from './types';
 
@@ -665,6 +668,120 @@ export async function adjustStock(variantId: string, newStock: number, reason: s
   });
 }
 
+// ─── Reviews ────────────────────────────────────────────────────────────────
+
+export type ProductReviewInput = {
+  productId: string;
+  authorName: string;
+  authorEmail: string;
+  rating: number;
+  body: string;
+  customerId?: string | null;
+};
+
+export type ReviewQueryInput = {
+  status?: 'all' | ProductReviewStatus;
+  page?: number;
+  pageSize?: number;
+};
+
+export type AdminProductReview = ProductReview & {
+  productTitle: string;
+  productSlug: string;
+};
+
+export async function getApprovedProductReviews(productId: string): Promise<ProductReview[]> {
+  const db = getDb();
+  const rows = await db
+    .select()
+    .from(productReviewsTable)
+    .where(and(eq(productReviewsTable.productId, productId), eq(productReviewsTable.status, 'approved')))
+    .orderBy(desc(productReviewsTable.createdAt));
+
+  return rows.map(mapProductReviewRow);
+}
+
+export async function createProductReview(input: ProductReviewInput): Promise<ProductReview> {
+  const db = getDb();
+  const now = nowIso();
+  const id = randomUUID();
+  const row = {
+    id,
+    productId: input.productId,
+    customerId: input.customerId ?? null,
+    authorName: input.authorName,
+    authorEmail: input.authorEmail,
+    rating: input.rating,
+    body: input.body,
+    status: 'pending' as const,
+    reviewedAt: null,
+    createdAt: now,
+    updatedAt: now
+  };
+
+  await db.insert(productReviewsTable).values(row);
+  return mapProductReviewRow(row);
+}
+
+export async function queryProductReviews(input: ReviewQueryInput = {}) {
+  const db = getDb();
+  const { status = 'pending', page = 1, pageSize = 20 } = input;
+  const where = status === 'all' ? undefined : eq(productReviewsTable.status, status);
+
+  const [items, countResult] = await Promise.all([
+    db
+      .select({
+        id: productReviewsTable.id,
+        productId: productReviewsTable.productId,
+        customerId: productReviewsTable.customerId,
+        authorName: productReviewsTable.authorName,
+        authorEmail: productReviewsTable.authorEmail,
+        rating: productReviewsTable.rating,
+        body: productReviewsTable.body,
+        status: productReviewsTable.status,
+        reviewedAt: productReviewsTable.reviewedAt,
+        createdAt: productReviewsTable.createdAt,
+        updatedAt: productReviewsTable.updatedAt,
+        productTitle: productsTable.title,
+        productSlug: productsTable.slug
+      })
+      .from(productReviewsTable)
+      .innerJoin(productsTable, eq(productsTable.id, productReviewsTable.productId))
+      .where(where)
+      .orderBy(desc(productReviewsTable.createdAt))
+      .limit(pageSize)
+      .offset((page - 1) * pageSize),
+    db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(productReviewsTable)
+      .where(where)
+  ]);
+
+  const reviews: AdminProductReview[] = items.map((row) => ({
+    ...mapProductReviewRow(row),
+    productTitle: row.productTitle,
+    productSlug: row.productSlug
+  }));
+
+  return { reviews, meta: { total: countResult[0]?.count ?? 0, page, pageSize } };
+}
+
+export async function updateProductReviewStatus(id: string, status: ProductReviewStatus): Promise<ProductReview | null> {
+  const db = getDb();
+  const now = nowIso();
+  const result = await db
+    .update(productReviewsTable)
+    .set({
+      status,
+      reviewedAt: status === 'pending' ? null : now,
+      updatedAt: now
+    })
+    .where(eq(productReviewsTable.id, id))
+    .returning();
+
+  return result[0] ? mapProductReviewRow(result[0]) : null;
+}
+
 // ─── Row Mappers ────────────────────────────────────────────────────────────
 
 function mapProductRow(row: Record<string, unknown>): Product {
@@ -787,6 +904,22 @@ function mapCouponRow(row: Record<string, unknown>): Coupon {
     active: Boolean(row.active),
     startsAt: (row.startsAt ?? row.starts_at ?? null) as string | null,
     expiresAt: (row.expiresAt ?? row.expires_at ?? null) as string | null,
+    createdAt: (row.createdAt ?? row.created_at) as string,
+    updatedAt: (row.updatedAt ?? row.updated_at) as string
+  };
+}
+
+function mapProductReviewRow(row: Record<string, unknown>): ProductReview {
+  return {
+    id: row.id as string,
+    productId: (row.productId ?? row.product_id) as string,
+    customerId: (row.customerId ?? row.customer_id ?? null) as string | null,
+    authorName: (row.authorName ?? row.author_name) as string,
+    authorEmail: (row.authorEmail ?? row.author_email) as string,
+    rating: Number(row.rating),
+    body: row.body as string,
+    status: (row.status as ProductReview['status']) || 'pending',
+    reviewedAt: (row.reviewedAt ?? row.reviewed_at ?? null) as string | null,
     createdAt: (row.createdAt ?? row.created_at) as string,
     updatedAt: (row.updatedAt ?? row.updated_at) as string
   };

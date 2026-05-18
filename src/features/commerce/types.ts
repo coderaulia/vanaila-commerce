@@ -1,4 +1,5 @@
 export type ProductStatus = 'draft' | 'active' | 'archived';
+export type ProductReviewStatus = 'pending' | 'approved' | 'rejected';
 
 export type ProductVariant = {
   id: string;
@@ -153,6 +154,20 @@ export type InventoryLog = {
   reason: string;
   orderId: string | null;
   createdAt: string;
+};
+
+export type ProductReview = {
+  id: string;
+  productId: string;
+  customerId: string | null;
+  authorName: string;
+  authorEmail: string;
+  rating: number;
+  body: string;
+  status: ProductReviewStatus;
+  reviewedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
 };
 
 export type CouponType = 'percentage' | 'fixed_amount';
