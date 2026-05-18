@@ -6,7 +6,8 @@ import { getSettings } from '@/features/cms/contentStore';
 import { env } from '@/services/env';
 
 export const metadata = {
-  title: 'Checkout'
+  title: 'Checkout',
+  robots: { index: false, follow: false }
 };
 
 export default async function CheckoutPage() {

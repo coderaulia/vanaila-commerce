@@ -43,7 +43,10 @@ export function AppShell({ siteName, navItems, settings, children }: AppShellPro
     pathname === '/shop' ||
     pathname.startsWith('/shop/') ||
     pathname === '/cart' ||
-    pathname === '/checkout';
+    pathname === '/checkout' ||
+    pathname === '/search' ||
+    pathname === '/account' ||
+    pathname.startsWith('/account/');
 
   // Store routes: use template-specific shell for selfContained templates
   if (isStoreRoute && template.selfContained) {

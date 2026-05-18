@@ -4,7 +4,8 @@ import { CartPageClient } from '@/components/shop/CartPageClient';
 import { modules } from '@/config/modules';
 
 export const metadata = {
-  title: 'Shopping Cart'
+  title: 'Shopping Cart',
+  robots: { index: false, follow: false }
 };
 
 export default function CartPage() {

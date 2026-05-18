@@ -2,11 +2,15 @@ import { NextResponse } from 'next/server';
 
 import { modules } from '@/config/modules';
 import { registerCustomer, setSessionCookie } from '@/features/commerce/customerAuth';
+import { assertRateLimit } from '@/services/requestSecurity';
 
 export async function POST(request: Request) {
   if (!modules.ENABLE_STORE_MODULE) {
     return NextResponse.json({ error: 'Store module disabled' }, { status: 404 });
   }
+
+  const limited = await assertRateLimit(request, 'account:register', 5, 60_000);
+  if (limited) return limited;
 
   let body: unknown;
   try {
@@ -15,7 +19,15 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
   }
 
-  const { email, name, phone, password } = body as Record<string, string>;
+  if (!body || typeof body !== 'object' || Array.isArray(body)) {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+  }
+
+  const raw = body as Record<string, unknown>;
+  const email = typeof raw.email === 'string' ? raw.email.trim().slice(0, 254) : '';
+  const name = typeof raw.name === 'string' ? raw.name.trim().slice(0, 100) : '';
+  const phone = typeof raw.phone === 'string' ? raw.phone.trim().slice(0, 30) : '';
+  const password = typeof raw.password === 'string' ? raw.password.slice(0, 1000) : '';
 
   if (!email || !name || !password) {
     return NextResponse.json({ error: 'email, name, and password are required' }, { status: 400 });

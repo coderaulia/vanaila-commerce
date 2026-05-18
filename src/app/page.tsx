@@ -21,13 +21,8 @@ const VanailaRedesignHome = dynamic(() =>
 );
 
 export async function generateMetadata() {
-  if (modules.ENABLE_STORE_MODULE) {
-    return { title: 'Shop' };
-  }
   const [settings, page] = await Promise.all([getSiteSettings(), getPublishedPage('home')]);
-  if (!page) {
-    return { title: 'Not found' };
-  }
+  if (!page) return { title: settings.general.siteName };
   return buildMetadata(settings, page.seo, page.title, page.seo.metaDescription);
 }
 

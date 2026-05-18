@@ -2,11 +2,15 @@ import { NextResponse } from 'next/server';
 
 import { modules } from '@/config/modules';
 import { loginCustomer, setSessionCookie } from '@/features/commerce/customerAuth';
+import { assertRateLimit } from '@/services/requestSecurity';
 
 export async function POST(request: Request) {
   if (!modules.ENABLE_STORE_MODULE) {
     return NextResponse.json({ error: 'Store module disabled' }, { status: 404 });
   }
+
+  const limited = await assertRateLimit(request, 'account:login', 10, 60_000);
+  if (limited) return limited;
 
   let body: unknown;
   try {
@@ -15,7 +19,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
   }
 
-  const { email, password } = body as Record<string, string>;
+  if (!body || typeof body !== 'object' || Array.isArray(body)) {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+  }
+
+  const raw = body as Record<string, unknown>;
+  const email = typeof raw.email === 'string' ? raw.email.trim().slice(0, 254) : '';
+  const password = typeof raw.password === 'string' ? raw.password.slice(0, 1000) : '';
 
   if (!email || !password) {
     return NextResponse.json({ error: 'Email and password required' }, { status: 400 });

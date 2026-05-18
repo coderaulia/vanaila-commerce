@@ -2,6 +2,8 @@ import { notFound } from 'next/navigation';
 
 import { modules } from '@/config/modules';
 import { getProductBySlug, queryProducts } from '@/features/commerce/store';
+import { getSiteSettings } from '@/features/cms/publicApi';
+import { buildCanonical } from '@/features/cms/seo';
 
 import { ProductDetail } from '@/components/shop/ProductDetail';
 
@@ -10,11 +12,31 @@ type Props = { params: Promise<{ slug: string }> };
 export async function generateMetadata({ params }: Props) {
   if (!modules.ENABLE_STORE_MODULE) return {};
   const { slug } = await params;
-  const product = await getProductBySlug(slug);
+  const [product, settings] = await Promise.all([getProductBySlug(slug), getSiteSettings()]);
   if (!product || product.status !== 'active') return {};
+
+  const title = product.seoTitle || product.title;
+  const description = product.seoDescription || product.shortDescription || '';
+  const canonical = buildCanonical(settings.general.baseUrl, `shop/${slug}`);
+  const ogImage = product.images[0] || settings.seo.defaultOgImage;
+
   return {
-    title: product.seoTitle || product.title,
-    description: product.seoDescription || product.shortDescription
+    title,
+    description,
+    alternates: { canonical },
+    openGraph: {
+      title,
+      description,
+      type: 'website',
+      url: canonical,
+      images: ogImage ? [{ url: ogImage }] : []
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+      images: ogImage ? [ogImage] : []
+    }
   };
 }
 

@@ -4,8 +4,12 @@ import { NextResponse } from 'next/server';
 import { getDb } from '@/db/client';
 import { customersTable } from '@/db/schema';
 import { getCustomerSession } from '@/features/commerce/customerAuth';
+import { assertTrustedMutationRequest } from '@/services/requestSecurity';
 
 export async function PUT(request: Request) {
+  const csrf = assertTrustedMutationRequest(request);
+  if (csrf) return csrf;
+
   const session = await getCustomerSession();
   if (!session) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -18,17 +22,31 @@ export async function PUT(request: Request) {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
   }
 
-  const { name, phone, address, city, province, postalCode } = body as Record<string, string>;
+  if (!body || typeof body !== 'object' || Array.isArray(body)) {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+  }
+
+  const raw = body as Record<string, unknown>;
+  const str = (v: unknown, max: number) =>
+    typeof v === 'string' ? v.trim().slice(0, max) : undefined;
 
   const updates: Record<string, string> = {
     updatedAt: new Date().toISOString(),
   };
-  if (name?.trim()) updates.name = name.trim();
-  if (phone !== undefined) updates.phone = phone.trim();
-  if (address !== undefined) updates.address = address.trim();
-  if (city !== undefined) updates.city = city.trim();
-  if (province !== undefined) updates.province = province.trim();
-  if (postalCode !== undefined) updates.postalCode = postalCode.trim();
+
+  const name = str(raw.name, 100);
+  const phone = str(raw.phone, 30);
+  const address = str(raw.address, 300);
+  const city = str(raw.city, 100);
+  const province = str(raw.province, 100);
+  const postalCode = str(raw.postalCode, 20);
+
+  if (name) updates.name = name;
+  if (phone !== undefined) updates.phone = phone ?? '';
+  if (address !== undefined) updates.address = address ?? '';
+  if (city !== undefined) updates.city = city ?? '';
+  if (province !== undefined) updates.province = province ?? '';
+  if (postalCode !== undefined) updates.postalCode = postalCode ?? '';
 
   const db = getDb();
   const rows = await db
