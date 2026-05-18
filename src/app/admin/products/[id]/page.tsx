@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
@@ -318,9 +319,14 @@ function ProductEditor() {
       <div className="admin-form-section">
         <div className="admin-form-section-header">
           <h3>Variants</h3>
-          <button type="button" className="admin-btn-sm admin-btn-primary" onClick={handleAddVariant}>
-            Add Variant
-          </button>
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+            <Link href={`/admin/products/${id}/inventory`} className="admin-btn-sm">
+              Inventory Log
+            </Link>
+            <button type="button" className="admin-btn-sm admin-btn-primary" onClick={handleAddVariant}>
+              Add Variant
+            </button>
+          </div>
         </div>
 
         {!product.variants?.length ? (

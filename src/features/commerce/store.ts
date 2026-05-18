@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 
 import { and, asc, desc, eq, ilike, inArray, or, sql } from 'drizzle-orm';
+import type { SQL } from 'drizzle-orm';
 
 import { getDb } from '@/db/client';
 import {
@@ -23,6 +24,7 @@ import type {
   PaymentStatus,
   Product,
   ProductCategory,
+  InventoryLog,
   ProductVariant
 } from './types';
 
@@ -373,13 +375,42 @@ export type OrderQueryInput = {
   pageSize?: number;
 };
 
+function orderSearchCondition(q?: string): SQL | undefined {
+  const term = q?.trim();
+  if (!term) return undefined;
+
+  const likeTerm = `%${term}%`;
+
+  return or(
+    ilike(ordersTable.orderNumber, likeTerm),
+    ilike(ordersTable.shippingName, likeTerm),
+    sql`exists (
+      select 1
+      from ${orderItemsTable}
+      left join ${productVariantsTable}
+        on ${productVariantsTable.id} = ${orderItemsTable.variantId}
+      left join ${productsTable}
+        on ${productsTable.id} = ${orderItemsTable.productId}
+      where ${orderItemsTable.orderId} = ${ordersTable.id}
+        and (
+          ${orderItemsTable.productTitle} ilike ${likeTerm}
+          or ${orderItemsTable.variantName} ilike ${likeTerm}
+          or ${orderItemsTable.sku} ilike ${likeTerm}
+          or ${productVariantsTable.name} ilike ${likeTerm}
+          or ${productsTable.title} ilike ${likeTerm}
+        )
+    )`
+  );
+}
+
 export async function queryAllOrdersForExport(input: Pick<OrderQueryInput, 'status' | 'q'> = {}): Promise<Order[]> {
   const db = getDb();
   const { status = 'all', q } = input;
 
   const conditions = [];
   if (status !== 'all') conditions.push(eq(ordersTable.status, status));
-  if (q) conditions.push(or(ilike(ordersTable.orderNumber, `%${q}%`), ilike(ordersTable.shippingName, `%${q}%`)));
+  const search = orderSearchCondition(q);
+  if (search) conditions.push(search);
 
   const where = conditions.length > 0 ? and(...conditions) : undefined;
 
@@ -394,7 +425,8 @@ export async function queryOrders(input: OrderQueryInput = {}) {
   const conditions = [];
   if (status !== 'all') conditions.push(eq(ordersTable.status, status));
   if (customerId) conditions.push(eq(ordersTable.customerId, customerId));
-  if (q) conditions.push(or(ilike(ordersTable.orderNumber, `%${q}%`), ilike(ordersTable.shippingName, `%${q}%`)));
+  const search = orderSearchCondition(q);
+  if (search) conditions.push(search);
 
   const where = conditions.length > 0 ? and(...conditions) : undefined;
 
@@ -570,6 +602,48 @@ export async function deleteCoupon(id: string): Promise<boolean> {
 }
 
 // ─── Inventory ──────────────────────────────────────────────────────────────
+
+export type ProductInventoryLog = InventoryLog & {
+  variantName: string;
+  sku: string;
+  productTitle: string;
+};
+
+export async function getProductInventoryLogs(productId: string): Promise<ProductInventoryLog[]> {
+  const db = getDb();
+
+  const rows = await db
+    .select({
+      id: inventoryLogsTable.id,
+      variantId: inventoryLogsTable.variantId,
+      previousStock: inventoryLogsTable.previousStock,
+      newStock: inventoryLogsTable.newStock,
+      reason: inventoryLogsTable.reason,
+      orderId: inventoryLogsTable.orderId,
+      createdAt: inventoryLogsTable.createdAt,
+      variantName: productVariantsTable.name,
+      sku: productVariantsTable.sku,
+      productTitle: productsTable.title
+    })
+    .from(inventoryLogsTable)
+    .innerJoin(productVariantsTable, eq(productVariantsTable.id, inventoryLogsTable.variantId))
+    .innerJoin(productsTable, eq(productsTable.id, productVariantsTable.productId))
+    .where(eq(productVariantsTable.productId, productId))
+    .orderBy(desc(inventoryLogsTable.createdAt));
+
+  return rows.map((row) => ({
+    id: row.id,
+    variantId: row.variantId,
+    previousStock: Number(row.previousStock),
+    newStock: Number(row.newStock),
+    reason: row.reason,
+    orderId: row.orderId,
+    createdAt: row.createdAt,
+    variantName: row.variantName,
+    sku: row.sku,
+    productTitle: row.productTitle
+  }));
+}
 
 export async function adjustStock(variantId: string, newStock: number, reason: string, orderId?: string): Promise<void> {
   const db = getDb();
