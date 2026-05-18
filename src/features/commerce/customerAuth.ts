@@ -62,26 +62,38 @@ export async function registerCustomer(
 
   const db = getDb();
   const existing = await db
-    .select({ id: customersTable.id })
+    .select({ id: customersTable.id, passwordHash: customersTable.passwordHash })
     .from(customersTable)
     .where(eq(customersTable.email, input.email.toLowerCase().trim()))
     .limit(1);
 
-  if (existing.length > 0) return 'email_taken';
+  if (existing[0]?.passwordHash) return 'email_taken';
 
   const passwordHash = await hashPassword(input.password);
   const now = nowIso();
-  const id = randomUUID();
+  const id = existing[0]?.id ?? randomUUID();
 
-  await db.insert(customersTable).values({
-    id,
-    email: input.email.toLowerCase().trim(),
-    name: input.name.trim(),
-    phone: input.phone?.trim() ?? '',
-    passwordHash,
-    createdAt: now,
-    updatedAt: now,
-  });
+  if (existing[0]) {
+    await db
+      .update(customersTable)
+      .set({
+        name: input.name.trim(),
+        phone: input.phone?.trim() ?? '',
+        passwordHash,
+        updatedAt: now
+      })
+      .where(eq(customersTable.id, id));
+  } else {
+    await db.insert(customersTable).values({
+      id,
+      email: input.email.toLowerCase().trim(),
+      name: input.name.trim(),
+      phone: input.phone?.trim() ?? '',
+      passwordHash,
+      createdAt: now,
+      updatedAt: now,
+    });
+  }
 
   return createSession(id);
 }

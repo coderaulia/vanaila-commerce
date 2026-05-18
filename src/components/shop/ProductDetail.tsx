@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { Heart } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 
 import { addToCart } from '@/features/commerce/cartStore';
@@ -94,11 +94,10 @@ export function ProductDetail({ product, relatedProducts = [], reviews: initialR
   const [selectedImage, setSelectedImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [added, setAdded] = useState(false);
-  const [reviewName, setReviewName] = useState('');
-  const [reviewEmail, setReviewEmail] = useState('');
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewBody, setReviewBody] = useState('');
   const [reviewStatus, setReviewStatus] = useState<'idle' | 'submitting' | 'submitted' | 'error'>('idle');
+  const [reviewEligibility, setReviewEligibility] = useState<'checking' | 'eligible' | 'login' | 'purchase'>('checking');
   const wishlist = useWishlist();
 
   const handleAddToCart = () => {
@@ -115,8 +114,31 @@ export function ProductDetail({ product, relatedProducts = [], reviews: initialR
   const reviews = getProductReviews(initialReviews);
   const isWishlisted = wishlist.productIds.has(product.id);
 
+  useEffect(() => {
+    let active = true;
+    setReviewEligibility('checking');
+
+    fetch(`/api/store/reviews?productId=${encodeURIComponent(product.id)}`)
+      .then((response) => {
+        if (!active) return;
+        if (response.ok) {
+          setReviewEligibility('eligible');
+          return;
+        }
+        setReviewEligibility(response.status === 401 ? 'login' : 'purchase');
+      })
+      .catch(() => {
+        if (active) setReviewEligibility('login');
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [product.id]);
+
   const handleSubmitReview = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (reviewEligibility !== 'eligible') return;
     setReviewStatus('submitting');
 
     const res = await fetch('/api/store/reviews', {
@@ -124,16 +146,12 @@ export function ProductDetail({ product, relatedProducts = [], reviews: initialR
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         productId: product.id,
-        authorName: reviewName,
-        authorEmail: reviewEmail,
         rating: reviewRating,
         body: reviewBody
       })
     });
 
     if (res.ok) {
-      setReviewName('');
-      setReviewEmail('');
       setReviewRating(5);
       setReviewBody('');
       setReviewStatus('submitted');
@@ -335,10 +353,14 @@ export function ProductDetail({ product, relatedProducts = [], reviews: initialR
             <button
               type="button"
               onClick={() => toggleWishlistProduct(product)}
-              className="inline-flex h-11 items-center justify-center gap-2 border border-gray-200 px-4 text-xs font-bold uppercase tracking-widest text-black transition-colors hover:border-black"
+              className={`inline-flex h-11 items-center justify-center gap-2 border px-4 text-xs font-bold uppercase tracking-widest transition-colors ${
+                isWishlisted
+                  ? 'border-black bg-black text-white hover:bg-gray-800'
+                  : 'border-gray-300 bg-white text-black hover:border-black hover:bg-gray-50'
+              }`}
               aria-pressed={isWishlisted}
             >
-              <Heart aria-hidden="true" className={`h-4 w-4 ${isWishlisted ? 'fill-black' : ''}`} />
+              <Heart aria-hidden="true" className={`h-4 w-4 ${isWishlisted ? 'fill-current' : ''}`} />
               {isWishlisted ? 'Saved' : 'Save for Later'}
             </button>
 
@@ -410,30 +432,29 @@ export function ProductDetail({ product, relatedProducts = [], reviews: initialR
             </div>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-2">
-            <label className="text-xs font-bold uppercase tracking-widest text-gray-500">
-              Name
-              <input
-                type="text"
-                value={reviewName}
-                onChange={(event) => setReviewName(event.target.value)}
-                className="mt-2 w-full border border-gray-300 px-3 py-2 text-sm font-normal normal-case tracking-normal text-black outline-none focus:border-black"
-                required
-              />
-            </label>
-            <label className="text-xs font-bold uppercase tracking-widest text-gray-500">
-              Email
-              <input
-                type="email"
-                value={reviewEmail}
-                onChange={(event) => setReviewEmail(event.target.value)}
-                className="mt-2 w-full border border-gray-300 px-3 py-2 text-sm font-normal normal-case tracking-normal text-black outline-none focus:border-black"
-                required
-              />
-            </label>
-          </div>
+          {reviewEligibility === 'checking' ? (
+            <p className="text-sm text-gray-500">Checking review eligibility...</p>
+          ) : null}
 
-          <label className="mt-4 block text-xs font-bold uppercase tracking-widest text-gray-500">
+          {reviewEligibility === 'login' ? (
+            <div className="border border-gray-100 bg-gray-50 p-4">
+              <p className="text-sm text-gray-600">Log in with the account used for purchase to write a review.</p>
+              <Link href="/account/login" className="mt-3 inline-flex text-xs font-bold uppercase tracking-widest text-black">
+                Log in
+              </Link>
+            </div>
+          ) : null}
+
+          {reviewEligibility === 'purchase' ? (
+            <p className="border border-gray-100 bg-gray-50 p-4 text-sm text-gray-600">
+              Only customers who purchased this product can write a review.
+            </p>
+          ) : null}
+
+          {reviewEligibility === 'eligible' ? (
+            <>
+
+          <label className="block text-xs font-bold uppercase tracking-widest text-gray-500">
             Rating
             <select
               value={reviewRating}
@@ -473,6 +494,8 @@ export function ProductDetail({ product, relatedProducts = [], reviews: initialR
               <p className="text-sm text-red-600">Review could not be submitted.</p>
             ) : null}
           </div>
+            </>
+          ) : null}
         </form>
       </section>
 

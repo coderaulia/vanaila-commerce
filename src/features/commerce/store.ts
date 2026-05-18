@@ -701,6 +701,27 @@ export async function getApprovedProductReviews(productId: string): Promise<Prod
   return rows.map(mapProductReviewRow);
 }
 
+export async function hasCustomerPurchasedProduct(customerId: string, productId: string): Promise<boolean> {
+  const db = getDb();
+  const rows = await db
+    .select({ id: ordersTable.id })
+    .from(ordersTable)
+    .innerJoin(orderItemsTable, eq(orderItemsTable.orderId, ordersTable.id))
+    .where(
+      and(
+        eq(ordersTable.customerId, customerId),
+        eq(orderItemsTable.productId, productId),
+        or(
+          eq(ordersTable.paymentStatus, 'paid'),
+          inArray(ordersTable.status, ['paid', 'processing', 'shipped', 'delivered'])
+        )
+      )
+    )
+    .limit(1);
+
+  return rows.length > 0;
+}
+
 export async function createProductReview(input: ProductReviewInput): Promise<ProductReview> {
   const db = getDb();
   const now = nowIso();

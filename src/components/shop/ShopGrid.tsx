@@ -130,9 +130,13 @@ export function ShopGrid({ initialCategoryId = '' }: ShopGridProps) {
                         }}
                         aria-label={wishlist.productIds.has(product.id) ? 'Remove from wishlist' : 'Add to wishlist'}
                         aria-pressed={wishlist.productIds.has(product.id)}
-                        className="absolute right-3 top-3 z-10 inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-black shadow-sm transition hover:bg-white"
+                        className={`absolute right-3 top-3 z-10 inline-flex h-9 w-9 items-center justify-center rounded-full border shadow-sm transition ${
+                          wishlist.productIds.has(product.id)
+                            ? 'border-black bg-black text-white hover:bg-gray-800'
+                            : 'border-white bg-white/90 text-black hover:bg-white'
+                        }`}
                       >
-                        <Heart aria-hidden="true" className={`h-4 w-4 ${wishlist.productIds.has(product.id) ? 'fill-black' : ''}`} />
+                        <Heart aria-hidden="true" className={`h-4 w-4 ${wishlist.productIds.has(product.id) ? 'fill-current' : ''}`} />
                       </button>
                     </div>
                     <h3 className="font-semibold text-sm mb-1">{product.title}</h3>

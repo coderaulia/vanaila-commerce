@@ -154,7 +154,7 @@ function WishlistButton({ product, className }: { product: Product; className: s
   return (
     <button
       type="button"
-      className={className}
+      className={`${className} ${active ? 'bg-black text-white hover:bg-black/85' : 'bg-white/90 text-[#0A0A0A] hover:bg-white'}`}
       aria-label={active ? 'Remove from wishlist' : 'Add to wishlist'}
       aria-pressed={active}
       onClick={toggle}
@@ -210,7 +210,7 @@ function VoltaProductCard({ product }: { product: Product }) {
         )}
         <WishlistButton
           product={product}
-          className="absolute right-4 top-4 z-10 inline-flex h-10 w-10 items-center justify-center rounded-full bg-white/90 text-[#0A0A0A] shadow-sm transition hover:bg-white"
+          className="absolute right-4 top-4 z-10 inline-flex h-10 w-10 items-center justify-center rounded-full shadow-sm transition"
         />
         {product.images[0] ? (
           <img src={product.images[0]} alt={product.title} className="h-full w-full object-cover transition duration-500 group-hover:scale-105" loading="lazy" />
@@ -250,7 +250,7 @@ function JavanesaProductCard({ product, index }: { product: Product; index: numb
       <div className={`relative mx-auto mb-5 aspect-[3/4] w-full overflow-hidden bg-[#f1e4d6] p-3 ${radii[index % radii.length]} transition-all duration-700 group-hover:rounded-[44%_56%_48%_52%/52%_44%_56%_48%]`}>
         <WishlistButton
           product={product}
-          className="absolute right-5 top-5 z-10 inline-flex h-10 w-10 items-center justify-center rounded-full bg-white/85 text-[#9f6b38] shadow-sm transition hover:bg-white"
+          className="absolute right-5 top-5 z-10 inline-flex h-10 w-10 items-center justify-center rounded-full shadow-sm transition"
         />
         {product.images[0] ? (
           <img src={product.images[0]} alt={product.title} className="h-full w-full rounded-[inherit] object-cover transition duration-700 group-hover:scale-105" loading="lazy" />
