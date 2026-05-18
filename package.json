@@ -19,6 +19,7 @@
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
+    "db:migrate:reviews": "tsx scripts/migrate-product-reviews.ts",
     "db:purge": "tsx scripts/purge-supabase.ts",
     "db:reset": "tsx scripts/reset-supabase.ts",
     "db:seed:file": "tsx scripts/import-content.ts",
