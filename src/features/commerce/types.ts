@@ -195,6 +195,12 @@ export type CartItem = {
   variant?: ProductVariant;
 };
 
+export type WishlistItem = {
+  productId: string;
+  product?: Product;
+  addedAt: string;
+};
+
 export type Cart = {
   items: CartItem[];
   couponCode: string | null;

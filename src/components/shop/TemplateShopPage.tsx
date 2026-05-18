@@ -5,6 +5,7 @@ import { type MouseEvent, useCallback, useEffect, useMemo, useState } from 'reac
 import { Heart, Search, ShoppingBag, SlidersHorizontal } from 'lucide-react';
 
 import { addToCart } from '@/features/commerce/cartStore';
+import { toggleWishlistProduct, useWishlist } from '@/features/commerce/wishlistStore';
 import type { HeroBlock, LandingPage } from '@/features/cms/types';
 import type { Product, ProductCategory, ProductVariant } from '@/features/commerce/types';
 
@@ -141,6 +142,28 @@ function AddButton({ product, variant, className }: { product: Product; variant?
   );
 }
 
+function WishlistButton({ product, className }: { product: Product; className: string }) {
+  const wishlist = useWishlist();
+  const active = wishlist.productIds.has(product.id);
+
+  const toggle = (event: MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    toggleWishlistProduct(product);
+  };
+
+  return (
+    <button
+      type="button"
+      className={className}
+      aria-label={active ? 'Remove from wishlist' : 'Add to wishlist'}
+      aria-pressed={active}
+      onClick={toggle}
+    >
+      <Heart size={18} aria-hidden="true" className={active ? 'fill-current' : ''} />
+    </button>
+  );
+}
+
 function EmptyState({ template }: { template: TemplateId }) {
   return (
     <div className={template === 'volta' ? 'rounded-[28px] bg-[#F4F2EE] px-6 py-20 text-center' : 'rounded-[48px] bg-[#f7efe5] px-6 py-20 text-center'}>
@@ -185,6 +208,10 @@ function VoltaProductCard({ product }: { product: Product }) {
             Featured
           </span>
         )}
+        <WishlistButton
+          product={product}
+          className="absolute right-4 top-4 z-10 inline-flex h-10 w-10 items-center justify-center rounded-full bg-white/90 text-[#0A0A0A] shadow-sm transition hover:bg-white"
+        />
         {product.images[0] ? (
           <img src={product.images[0]} alt={product.title} className="h-full w-full object-cover transition duration-500 group-hover:scale-105" loading="lazy" />
         ) : (
@@ -221,14 +248,10 @@ function JavanesaProductCard({ product, index }: { product: Product; index: numb
   return (
     <Link href={`/shop/${product.slug}`} className="group block text-center text-[#2d2118] no-underline">
       <div className={`relative mx-auto mb-5 aspect-[3/4] w-full overflow-hidden bg-[#f1e4d6] p-3 ${radii[index % radii.length]} transition-all duration-700 group-hover:rounded-[44%_56%_48%_52%/52%_44%_56%_48%]`}>
-        <button
-          type="button"
+        <WishlistButton
+          product={product}
           className="absolute right-5 top-5 z-10 inline-flex h-10 w-10 items-center justify-center rounded-full bg-white/85 text-[#9f6b38] shadow-sm transition hover:bg-white"
-          aria-label="Add to wishlist"
-          onClick={(event) => event.preventDefault()}
-        >
-          <Heart size={18} aria-hidden="true" />
-        </button>
+        />
         {product.images[0] ? (
           <img src={product.images[0]} alt={product.title} className="h-full w-full rounded-[inherit] object-cover transition duration-700 group-hover:scale-105" loading="lazy" />
         ) : (

@@ -1,11 +1,13 @@
 'use client';
 
 import Link from 'next/link';
+import { Heart } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 
 import '@/components/shop/store.css';
 
 import type { Product, ProductCategory } from '@/features/commerce/types';
+import { toggleWishlistProduct, useWishlist } from '@/features/commerce/wishlistStore';
 
 type ProductListPayload = {
   products: Product[];
@@ -23,6 +25,7 @@ export function ShopGrid({ initialCategoryId = '' }: ShopGridProps) {
   const [categoryId, setCategoryId] = useState(initialCategoryId);
   const [q, setQ] = useState('');
   const [page, setPage] = useState(1);
+  const wishlist = useWishlist();
 
   const fetchProducts = useCallback(async () => {
     setLoading(true);
@@ -119,6 +122,18 @@ export function ShopGrid({ initialCategoryId = '' }: ShopGridProps) {
                       ) : (
                         <div className="absolute inset-0 bg-gray-200" />
                       )}
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          event.preventDefault();
+                          toggleWishlistProduct(product);
+                        }}
+                        aria-label={wishlist.productIds.has(product.id) ? 'Remove from wishlist' : 'Add to wishlist'}
+                        aria-pressed={wishlist.productIds.has(product.id)}
+                        className="absolute right-3 top-3 z-10 inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-black shadow-sm transition hover:bg-white"
+                      >
+                        <Heart aria-hidden="true" className={`h-4 w-4 ${wishlist.productIds.has(product.id) ? 'fill-black' : ''}`} />
+                      </button>
                     </div>
                     <h3 className="font-semibold text-sm mb-1">{product.title}</h3>
                     {product.shortDescription && (

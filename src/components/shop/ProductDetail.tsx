@@ -1,10 +1,12 @@
 'use client';
 
 import Link from 'next/link';
+import { Heart } from 'lucide-react';
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 
 import { addToCart } from '@/features/commerce/cartStore';
+import { toggleWishlistProduct, useWishlist } from '@/features/commerce/wishlistStore';
 import type { Product, ProductReview, ProductVariant } from '@/features/commerce/types';
 import { sanitizeProductDescriptionHtml } from './productDetailHtml';
 
@@ -97,6 +99,7 @@ export function ProductDetail({ product, relatedProducts = [], reviews: initialR
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewBody, setReviewBody] = useState('');
   const [reviewStatus, setReviewStatus] = useState<'idle' | 'submitting' | 'submitted' | 'error'>('idle');
+  const wishlist = useWishlist();
 
   const handleAddToCart = () => {
     if (!selectedVariant) return;
@@ -110,6 +113,7 @@ export function ProductDetail({ product, relatedProducts = [], reviews: initialR
   const inStock = selectedVariant ? selectedVariant.stock > 0 : false;
   const optionKeys = variants[0]?.options ? Object.keys(variants[0].options) : [];
   const reviews = getProductReviews(initialReviews);
+  const isWishlisted = wishlist.productIds.has(product.id);
 
   const handleSubmitReview = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -327,6 +331,16 @@ export function ProductDetail({ product, relatedProducts = [], reviews: initialR
                 </button>
               </div>
             )}
+
+            <button
+              type="button"
+              onClick={() => toggleWishlistProduct(product)}
+              className="inline-flex h-11 items-center justify-center gap-2 border border-gray-200 px-4 text-xs font-bold uppercase tracking-widest text-black transition-colors hover:border-black"
+              aria-pressed={isWishlisted}
+            >
+              <Heart aria-hidden="true" className={`h-4 w-4 ${isWishlisted ? 'fill-black' : ''}`} />
+              {isWishlisted ? 'Saved' : 'Save for Later'}
+            </button>
 
             {selectedVariant && selectedVariant.stock > 0 && selectedVariant.stock <= 5 && (
               <p className="text-xs text-red-600 font-medium">

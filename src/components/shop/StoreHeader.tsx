@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { siteProfile } from '@/config/site-profile';
 import type { SiteSettings } from '@/features/cms/types';
 import { useCart } from '@/features/commerce/cartStore';
+import { useWishlist } from '@/features/commerce/wishlistStore';
 
 type Props = {
   siteName: string;
@@ -22,6 +23,7 @@ const NAV_LINKS = [
 export function StoreHeader({ siteName, settings }: Props) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const { totalItems } = useCart();
+  const wishlist = useWishlist();
   const brandLogo = settings.branding.headerLogo || settings.organizationLogo;
   const brandName = siteName.endsWith('.') ? siteName.slice(0, -1) : siteName;
   const wordmark = siteProfile.brand.wordmark;
@@ -96,6 +98,17 @@ export function StoreHeader({ siteName, settings }: Props) {
                 </svg>
               </Link>
 
+              <Link href="/wishlist" className="relative text-black hover:text-gray-400 transition-colors no-underline" aria-label={`Wishlist (${wishlist.totalItems} items)`}>
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill={wishlist.totalItems > 0 ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0 6.25-9 11.25-9 11.25S3 14.5 3 8.25A4.75 4.75 0 017.75 3.5c1.8 0 3.3 1 4.25 2.25A5.2 5.2 0 0116.25 3.5 4.75 4.75 0 0121 8.25z" />
+                </svg>
+                {wishlist.totalItems > 0 && (
+                  <span className="absolute -top-2 -right-2 bg-black text-white text-[10px] font-bold h-4 w-4 rounded-full flex items-center justify-center leading-none">
+                    {wishlist.totalItems > 9 ? '9+' : wishlist.totalItems}
+                  </span>
+                )}
+              </Link>
+
               <Link href="/cart" className="relative text-black hover:text-gray-400 transition-colors no-underline" aria-label={`Cart (${totalItems} items)`}>
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
@@ -124,6 +137,13 @@ export function StoreHeader({ siteName, settings }: Props) {
               {link.label}
             </Link>
           ))}
+          <Link
+            href="/wishlist"
+            className="text-xl font-bold tracking-widest text-black no-underline flex items-center gap-2"
+            onClick={() => setMobileOpen(false)}
+          >
+            WISHLIST {wishlist.totalItems > 0 && `(${wishlist.totalItems})`}
+          </Link>
           <Link
             href="/cart"
             className="text-xl font-bold tracking-widest text-black no-underline flex items-center gap-2"
