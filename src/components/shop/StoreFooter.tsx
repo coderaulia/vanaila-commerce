@@ -61,7 +61,7 @@ export function StoreFooter({ siteName, settings }: Props) {
               <div className="flex gap-4 pt-2">
                 {socialLinks.map((s) => (
                   <Link
-                    key={s.href}
+                    key={`${s.href}-${s.label}`}
                     href={s.href}
                     className="text-gray-400 hover:text-white transition-colors no-underline text-sm"
                   >

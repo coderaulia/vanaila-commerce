@@ -127,7 +127,7 @@ export function SiteFooter({ siteName, settings }: SiteFooterProps) {
               .filter((s) => s.href)
               .map((s) => (
                 <Link
-                  key={s.href}
+                  key={`${s.href}-${s.label}`}
                   href={s.href!}
                   className="no-underline block"
                   style={{ fontSize: 14, color: 'rgba(244,244,240,0.85)', padding: '4px 0' }}

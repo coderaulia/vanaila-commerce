@@ -51,7 +51,22 @@ function VAnnounce() {
   );
 }
 
-function VNav({ siteName, navLinks, cartCount }: { siteName: string; navLinks: { label: string; href: string }[]; cartCount: number }) {
+type StoreNavLink = {
+  label: string;
+  href: string;
+};
+
+function dedupeNavLinks(links: StoreNavLink[]): StoreNavLink[] {
+  const seen = new Set<string>();
+  return links.filter((link) => {
+    const key = `${link.href.trim().toLowerCase()}|${link.label.trim().toLowerCase()}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function VNav({ siteName, navLinks, cartCount }: { siteName: string; navLinks: StoreNavLink[]; cartCount: number }) {
   const [scrolled, setScrolled] = useState(false);
   const ticking = useRef(false);
 
@@ -101,7 +116,7 @@ function VNav({ siteName, navLinks, cartCount }: { siteName: string; navLinks: {
         <div style={{ display: 'flex', gap: 4 }}>
           {navLinks.map(l => (
             <Link
-              key={l.href}
+              key={`${l.href}-${l.label}`}
               href={l.href}
               className={styles.navLink}
               style={{ textDecoration: 'none', color: V.ink }}
@@ -183,7 +198,7 @@ function VFooter({ siteName, settings }: { siteName: string; settings: SiteSetti
             {socialLinks.length > 0 && (
               <div style={{ display: 'flex', gap: 10 }}>
                 {socialLinks.map(s => (
-                  <a key={s.href} href={s.href} style={{
+                  <a key={`${s.href}-${s.label}`} href={s.href} style={{
                     width: 36, height: 36, borderRadius: 999,
                     border: `1px solid ${V.hairDark}`,
                     display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
@@ -203,7 +218,7 @@ function VFooter({ siteName, settings }: { siteName: string; settings: SiteSetti
               }}>{c.h}</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 {c.links.map(l => (
-                  <Link key={l.href} href={l.href} style={{
+                  <Link key={`${l.href}-${l.label}`} href={l.href} style={{
                     fontSize: 13.5, color: 'rgba(250,250,249,0.85)',
                     textDecoration: 'none',
                   }}>{l.label}</Link>
@@ -239,7 +254,7 @@ export function VoltaStoreShell({ siteName, settings, children }: Props) {
 
   const rawNav = settings.navigation.headerLinks.filter(l => l.enabled);
   const navLinks = rawNav.length
-    ? rawNav.slice(0, 6).map(l => ({ label: l.label, href: l.href }))
+    ? dedupeNavLinks(rawNav.map(l => ({ label: l.label, href: l.href }))).slice(0, 6)
     : [
         { label: 'Shop',       href: '/shop' },
         { label: 'New',        href: '/shop?tag=new' },

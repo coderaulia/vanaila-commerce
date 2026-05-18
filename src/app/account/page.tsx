@@ -59,19 +59,36 @@ export default function AccountPage() {
   const [loggingOut, setLoggingOut] = useState(false);
 
   useEffect(() => {
-    Promise.all([
-      fetch('/api/account/me').then(r => {
-        if (r.status === 401) { router.replace('/account/login'); return null; }
-        return r.json() as Promise<{ customer: CustomerProfile }>;
-      }),
-      fetch('/api/account/orders').then(r => r.ok ? r.json() as Promise<{ orders: Order[] }> : { orders: [] }),
-    ])
-      .then(([me, ordersData]) => {
-        if (!me) return;
+    let cancelled = false;
+
+    async function loadAccount(): Promise<void> {
+      try {
+        const meResponse = await fetch('/api/account/me');
+        if (meResponse.status === 401) {
+          router.replace('/account/login');
+          return;
+        }
+        if (!meResponse.ok) return;
+
+        const me = await meResponse.json() as { customer: CustomerProfile };
+        const ordersResponse = await fetch('/api/account/orders');
+        const ordersData = ordersResponse.ok
+          ? await ordersResponse.json() as { orders: Order[] }
+          : { orders: [] };
+
+        if (cancelled) return;
         setProfile(me.customer);
         setOrders(ordersData.orders ?? []);
-      })
-      .finally(() => setLoading(false));
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    void loadAccount();
+
+    return () => {
+      cancelled = true;
+    };
   }, [router]);
 
   async function handleLogout() {
