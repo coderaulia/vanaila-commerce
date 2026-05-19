@@ -249,6 +249,17 @@ Current customer view:
 
 Customers are created automatically during checkout. There is no manual customer creation in admin.
 
+### Customer Account Pages
+
+Customer-facing account pages are available when the store module is enabled:
+
+- `/account` — dashboard with links to orders, profile, wishlist, own reviews, and shopping
+- `/account/profile` — customer profile and default shipping address
+- `/account/reviews` — submitted product reviews with moderation status
+- `/wishlist` — client-side saved products
+
+The account surfaces use the active storefront template shell so customer buttons, cards, and links match the selected theme.
+
 ### Store Roles
 
 | Role | Products | Orders | Customers |

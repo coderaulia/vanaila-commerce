@@ -1,5 +1,6 @@
 'use client';
 
+import { Heart, MessageSquareText, Package, PenLine, ShoppingBag, UserRound } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -29,6 +30,11 @@ type Order = {
   items: OrderItem[];
 };
 
+type Review = {
+  id: string;
+  status: string;
+};
+
 const rupiah = (n: number) => `Rp ${n.toLocaleString('id-ID')}`;
 
 const STATUS_LABELS: Record<string, string> = {
@@ -42,19 +48,20 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 const STATUS_COLORS: Record<string, string> = {
-  pending_payment: 'bg-yellow-50 text-yellow-700 border-yellow-200',
-  paid: 'bg-blue-50 text-blue-700 border-blue-200',
-  processing: 'bg-indigo-50 text-indigo-700 border-indigo-200',
-  shipped: 'bg-purple-50 text-purple-700 border-purple-200',
-  delivered: 'bg-green-50 text-green-700 border-green-200',
-  cancelled: 'bg-gray-50 text-gray-500 border-gray-200',
-  refunded: 'bg-red-50 text-red-600 border-red-200',
+  pending_payment: 'store-account-chip store-account-chip-warn',
+  paid: 'store-account-chip store-account-chip-info',
+  processing: 'store-account-chip store-account-chip-info',
+  shipped: 'store-account-chip store-account-chip-info',
+  delivered: 'store-account-chip store-account-chip-success',
+  cancelled: 'store-account-chip',
+  refunded: 'store-account-chip store-account-chip-danger',
 };
 
 export default function AccountPage() {
   const router = useRouter();
   const [profile, setProfile] = useState<CustomerProfile | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
+  const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
   const [loggingOut, setLoggingOut] = useState(false);
 
@@ -71,14 +78,17 @@ export default function AccountPage() {
         if (!meResponse.ok) return;
 
         const me = await meResponse.json() as { customer: CustomerProfile };
-        const ordersResponse = await fetch('/api/account/orders');
-        const ordersData = ordersResponse.ok
-          ? await ordersResponse.json() as { orders: Order[] }
-          : { orders: [] };
+        const [ordersResponse, reviewsResponse] = await Promise.all([
+          fetch('/api/account/orders'),
+          fetch('/api/account/reviews'),
+        ]);
+        const ordersData = ordersResponse.ok ? await ordersResponse.json() as { orders: Order[] } : { orders: [] };
+        const reviewsData = reviewsResponse.ok ? await reviewsResponse.json() as { reviews: Review[] } : { reviews: [] };
 
         if (cancelled) return;
         setProfile(me.customer);
         setOrders(ordersData.orders ?? []);
+        setReviews(reviewsData.reviews ?? []);
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -109,81 +119,108 @@ export default function AccountPage() {
   if (!profile) return null;
 
   return (
-    <div className="min-h-[60vh] px-4 py-16">
-      <div className="mx-auto max-w-3xl">
-        {/* Header */}
-        <div className="flex items-start justify-between mb-10">
+    <main className="store-account-page">
+      <div className="store-account-container">
+        <div className="store-account-header">
           <div>
-            <h1 className="text-3xl font-bold">My account</h1>
-            <p className="text-sm text-gray-500 mt-1">{profile.email}</p>
+            <p className="store-account-eyebrow">Customer dashboard</p>
+            <h1 className="store-account-title">My account</h1>
+            <p className="store-account-muted">{profile.email}</p>
           </div>
-          <div className="flex gap-3">
-            <Link
-              href="/account/profile"
-              className="inline-flex h-10 items-center rounded-full border border-gray-200 px-4 text-sm font-medium hover:border-primary transition-colors"
-            >
+          <div className="store-account-actions">
+            <Link href="/account/profile" className="store-account-btn store-account-btn-secondary">
+              <PenLine aria-hidden="true" className="h-4 w-4" />
               Edit profile
             </Link>
             <button
               type="button"
               onClick={handleLogout}
               disabled={loggingOut}
-              className="inline-flex h-10 items-center rounded-full border border-gray-200 px-4 text-sm font-medium text-gray-500 hover:border-red-300 hover:text-red-600 transition-colors disabled:opacity-50"
+              className="store-account-btn store-account-btn-secondary"
             >
               {loggingOut ? 'Signing out…' : 'Sign out'}
             </button>
           </div>
         </div>
 
-        {/* Orders */}
-        <h2 className="text-lg font-semibold mb-5">Orders</h2>
+        <section className="store-account-shortcuts" aria-label="Account shortcuts">
+          {[
+            { href: '#orders', label: 'Orders', value: orders.length, icon: Package },
+            { href: '/wishlist', label: 'Wishlist', value: 'Saved items', icon: Heart },
+            { href: '/account/reviews', label: 'My reviews', value: reviews.length, icon: MessageSquareText },
+            { href: '/account/profile', label: 'Profile', value: 'Address', icon: UserRound },
+            { href: '/shop', label: 'Shop', value: 'Browse', icon: ShoppingBag },
+          ].map((item) => {
+            const Icon = item.icon;
+            return (
+              <Link key={item.label} href={item.href} className="store-account-shortcut">
+                <span className="store-account-shortcut-icon">
+                  <Icon aria-hidden="true" className="h-5 w-5" />
+                </span>
+                <span>
+                  <span className="store-account-shortcut-label">{item.label}</span>
+                  <span className="store-account-shortcut-value">{item.value}</span>
+                </span>
+              </Link>
+            );
+          })}
+        </section>
 
+        <section id="orders" className="store-account-section">
+        <div className="store-account-section-head">
+          <div>
+            <p className="store-account-eyebrow">Purchase history</p>
+            <h2>Orders</h2>
+          </div>
+          <Link href="/shop" className="store-account-link">Continue shopping</Link>
+        </div>
         {orders.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-gray-200 py-16 text-center">
-            <p className="text-gray-500 text-sm">No orders yet.</p>
-            <Link href="/shop" className="mt-4 inline-block text-sm font-medium text-primary hover:underline">
+          <div className="store-account-empty">
+            <p>No orders yet.</p>
+            <Link href="/shop" className="store-account-btn store-account-btn-primary">
               Browse the shop
             </Link>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="store-account-list">
             {orders.map(order => (
-              <div key={order.id} className="rounded-2xl border border-gray-100 bg-white p-5 shadow-[0_1px_0_rgba(0,0,0,0.05)]">
-                <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
+              <article key={order.id} className="store-account-card">
+                <div className="store-account-card-head">
                   <div>
-                    <p className="font-semibold text-sm">#{order.orderNumber}</p>
-                    <p className="text-xs text-gray-400 mt-0.5">
+                    <p className="store-account-card-title">#{order.orderNumber}</p>
+                    <p className="store-account-muted">
                       {new Date(order.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
                     </p>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className={`inline-block rounded-full border px-3 py-1 text-xs font-medium ${STATUS_COLORS[order.status] ?? 'bg-gray-50 text-gray-500 border-gray-200'}`}>
+                  <div className="store-account-card-meta">
+                    <span className={STATUS_COLORS[order.status] ?? 'store-account-chip'}>
                       {STATUS_LABELS[order.status] ?? order.status}
                     </span>
-                    <span className="text-sm font-semibold">{rupiah(order.total)}</span>
+                    <span className="store-account-total">{rupiah(order.total)}</span>
                   </div>
                 </div>
 
-                <ul className="space-y-2">
+                <ul className="store-account-items">
                   {order.items.map(item => (
-                    <li key={item.id} className="flex items-center justify-between text-sm">
-                      <span className="text-gray-700">
+                    <li key={item.id}>
+                      <span>
                         {item.productTitle}
                         {item.variantName && item.variantName !== 'Default' && (
-                          <span className="text-gray-400"> · {item.variantName}</span>
+                          <span className="store-account-muted"> · {item.variantName}</span>
                         )}
                       </span>
-                      <span className="text-gray-500 text-xs ml-4 shrink-0">
+                      <span className="store-account-muted">
                         {item.quantity}× {rupiah(item.unitPrice)}
                       </span>
                     </li>
                   ))}
                 </ul>
-              </div>
+              </article>
             ))}
           </div>
         )}
+        </section>
       </div>
-    </div>
+    </main>
   );
 }

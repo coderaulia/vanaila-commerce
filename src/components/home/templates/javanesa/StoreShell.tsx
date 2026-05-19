@@ -47,7 +47,10 @@ export function JavanesaStoreShell({ siteName, settings, children }: Props) {
   const footerServiceLinks = settings.navigation.footerServiceLinks?.filter(l => l.enabled) ?? [];
 
   return (
-    <div className={`bg-background-light dark:bg-background-dark text-text-light dark:text-text-dark ${styles.root} ${fontLato.variable} ${fontAccent.variable}`}>
+    <div
+      className={`bg-background-light dark:bg-background-dark text-text-light dark:text-text-dark ${styles.root} ${fontLato.variable} ${fontAccent.variable}`}
+      data-store-template="javanesa"
+    >
 
       {/* Announcement bar */}
       <div className="bg-primary text-white text-center py-2 text-xs uppercase tracking-widest font-light">

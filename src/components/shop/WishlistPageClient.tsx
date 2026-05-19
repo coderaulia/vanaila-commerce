@@ -29,35 +29,36 @@ export function WishlistPageClient() {
   }
 
   return (
-    <main className="min-h-[56vh] max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-12">
-      <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+    <main className="store-account-page">
+      <div className="store-account-container">
+      <div className="store-account-header">
         <div>
           <Link
             href="/shop"
-            className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-gray-500 no-underline transition-colors hover:text-black"
+            className="store-account-link"
           >
             <ArrowLeft aria-hidden="true" className="h-4 w-4" />
             Continue shopping
           </Link>
-          <h1 className="mt-4 text-3xl font-bold uppercase text-black">Wishlist</h1>
+          <h1 className="store-account-title">Wishlist</h1>
         </div>
         {wishlist.totalItems > 0 ? (
-          <p className="text-sm font-medium text-gray-500">
+          <p className="store-account-muted">
             {wishlist.totalItems} {wishlist.totalItems === 1 ? 'item' : 'items'}
           </p>
         ) : null}
       </div>
 
       {wishlist.items.length === 0 ? (
-        <section className="flex min-h-[44vh] flex-col items-center justify-center border border-gray-100 px-4 py-16 text-center">
+        <section className="store-account-empty">
           <Heart aria-hidden="true" className="h-16 w-16 text-gray-200" />
-          <h2 className="mt-6 text-xl font-semibold text-gray-900">Your wishlist is empty</h2>
-          <p className="mt-2 max-w-sm text-sm leading-6 text-gray-500">
+          <h2>Your wishlist is empty</h2>
+          <p>
             Save products you want to revisit before checkout.
           </p>
           <Link
             href="/shop"
-            className="mt-8 inline-flex h-12 items-center justify-center bg-black px-8 text-sm font-semibold uppercase tracking-wide text-white no-underline transition-opacity hover:opacity-80"
+            className="store-account-btn store-account-btn-primary"
           >
             Browse the store
           </Link>
@@ -112,7 +113,7 @@ export function WishlistPageClient() {
                   <button
                     type="button"
                     onClick={() => addToCart(product, variant, 1)}
-                    className="mt-4 flex h-11 w-full items-center justify-center gap-2 bg-black px-4 text-xs font-semibold uppercase tracking-wide text-white transition-opacity hover:opacity-80"
+                    className="store-account-btn store-account-btn-primary mt-4 w-full justify-center"
                   >
                     <ShoppingBag aria-hidden="true" className="h-4 w-4" />
                     Add to Cart
@@ -123,6 +124,7 @@ export function WishlistPageClient() {
           })}
         </section>
       )}
+      </div>
     </main>
   );
 }

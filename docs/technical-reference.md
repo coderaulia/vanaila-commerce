@@ -264,10 +264,12 @@ export const modules = {
 | `products` | Product catalog (title, slug, status, images, SEO) |
 | `product_variants` | SKU-level pricing, stock, weight, options |
 | `customers` | Customer records with aggregated order stats |
+| `customer_sessions` | Customer account sessions |
 | `orders` | Order header (shipping, payment, totals, status) |
 | `order_items` | Line items per order |
 | `inventory_logs` | Stock change audit trail |
 | `coupons` | Discount codes (percentage or fixed amount) |
+| `product_reviews` | Customer product reviews and moderation status |
 
 ### Public Store API
 
@@ -277,6 +279,22 @@ GET  /api/store/products/[slug]   # Single product with variants
 GET  /api/store/categories        # All product categories
 POST /api/store/checkout          # Place order
 POST /api/store/payment/midtrans  # Midtrans webhook (signature-verified)
+GET  /api/store/reviews?productId=... # Check logged-in customer review eligibility
+POST /api/store/reviews           # Submit purchased-product review
+```
+
+### Customer Account API
+
+Customer account routes require the `customer_session` cookie except for login/register.
+
+```
+POST /api/account/register        # Create account and session
+POST /api/account/login           # Create session
+POST /api/account/logout          # Clear session
+GET  /api/account/me              # Current customer profile
+PUT  /api/account/profile         # Update profile/default address
+GET  /api/account/orders          # Current customer orders
+GET  /api/account/reviews         # Current customer product reviews
 ```
 
 ### Admin Store API
@@ -290,6 +308,7 @@ POST/PUT/DEL /api/admin/products/[id]/variants # Variant management (store:edit)
 GET         /api/admin/orders                # List (store:manage_orders)
 GET/PUT     /api/admin/orders/[id]           # Detail/status update (store:manage_orders)
 GET         /api/admin/customers             # List (store:manage_customers)
+GET/POST    /api/admin/reviews               # List/update product review moderation (store:edit)
 ```
 
 ### Payment Flow
@@ -340,3 +359,7 @@ New role `store_manager` with permissions:
 | `/cart` | Client | Shopping cart (client-side state) |
 | `/checkout` | Client | Checkout form |
 | `/shop/order/[id]` | Dynamic | Order confirmation |
+| `/wishlist` | Client | Saved products using local wishlist state |
+| `/account` | Client | Customer dashboard with orders, profile, wishlist, reviews, and shop shortcuts |
+| `/account/profile` | Client | Customer profile/default address editor |
+| `/account/reviews` | Client | Customer-owned review history and moderation status |

@@ -60,7 +60,7 @@ export function AppShell({ siteName, navItems, settings, children }: AppShellPro
 
   if (isStoreRoute) {
     return (
-      <div className="bg-white text-gray-900 antialiased">
+      <div className="bg-white text-gray-900 antialiased" data-store-template={template.id}>
         <StoreHeader siteName={siteName} settings={settings} />
         {children}
         <StoreFooter siteName={siteName} settings={settings} />

@@ -36,12 +36,12 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-[60vh] flex items-center justify-center px-4 py-16">
-      <div className="w-full max-w-md">
-        <h1 className="text-3xl font-bold mb-2">Sign in</h1>
-        <p className="text-sm text-gray-500 mb-8">
+    <main className="store-account-page">
+      <div className="store-account-form-panel">
+        <h1 className="store-account-title">Sign in</h1>
+        <p className="store-account-muted">
           Don&apos;t have an account?{' '}
-          <Link href="/account/register" className="text-primary hover:underline font-medium">
+          <Link href="/account/register" className="store-account-link">
             Register
           </Link>
         </p>
@@ -88,12 +88,12 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-full bg-primary py-3 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
+            className="store-account-btn store-account-btn-primary w-full justify-center"
           >
             {loading ? 'Signing in…' : 'Sign in'}
           </button>
         </form>
       </div>
-    </div>
+    </main>
   );
 }

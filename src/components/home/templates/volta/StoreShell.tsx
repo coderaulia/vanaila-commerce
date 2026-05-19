@@ -265,6 +265,7 @@ export function VoltaStoreShell({ siteName, settings, children }: Props) {
   return (
     <div
       className={`${styles.root} ${fontManrope.variable}`}
+      data-store-template="volta"
       style={{ background: V.paper, minHeight: '100vh', display: 'flex', flexDirection: 'column' }}
     >
       <VAnnounce />

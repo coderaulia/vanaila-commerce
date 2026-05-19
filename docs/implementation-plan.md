@@ -41,6 +41,8 @@ Last updated: 2026-05-16
 | Public store API (products, categories, checkout) | Done |
 | Midtrans webhook (SHA-512 verified) | Done |
 | Public shop pages (listing, detail, cart, checkout, order confirmation) | Done |
+| Customer account dashboard | Done — `/account` links orders, profile, wishlist, own reviews, and shop |
+| Customer reviews page/API | Done — `GET /api/account/reviews` and `/account/reviews` show owned submissions |
 | Rate limiting on `/api/store/checkout` | Done — 10 req/min |
 | Input caps on checkout payload | Done |
 | Orders CSV export | Done — `GET /api/admin/orders/export` |
@@ -73,6 +75,4 @@ No code priorities remain from this plan.
 
 ## Backlog
 
-| Item | Effort |
-|------|--------|
-| Product reviews/ratings | L |
+No active commerce backlog remains in this plan.

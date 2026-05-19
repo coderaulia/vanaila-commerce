@@ -87,16 +87,16 @@ export default function ProfilePage() {
   if (!profile) return null;
 
   return (
-    <div className="min-h-[60vh] px-4 py-16">
-      <div className="mx-auto max-w-xl">
-        <div className="flex items-center gap-3 mb-8">
-          <Link href="/account" className="text-sm text-gray-500 hover:text-primary transition-colors">
+    <main className="store-account-page">
+      <div className="store-account-form-panel">
+        <div className="mb-8">
+          <Link href="/account" className="store-account-link">
             ← My account
           </Link>
         </div>
 
-        <h1 className="text-3xl font-bold mb-2">Profile & address</h1>
-        <p className="text-sm text-gray-500 mb-8">{profile.email}</p>
+        <h1 className="store-account-title">Profile & address</h1>
+        <p className="store-account-muted">{profile.email}</p>
 
         <form onSubmit={handleSubmit} className="space-y-5">
           {error && (
@@ -152,11 +152,11 @@ export default function ProfilePage() {
           </div>
 
           <button type="submit" disabled={saving}
-            className="w-full rounded-full bg-primary py-3 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50">
+            className="store-account-btn store-account-btn-primary w-full justify-center">
             {saving ? 'Saving…' : 'Save changes'}
           </button>
         </form>
       </div>
-    </div>
+    </main>
   );
 }

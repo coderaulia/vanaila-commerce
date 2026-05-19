@@ -29,8 +29,9 @@ This plan is ordered by production risk first, then by user-facing commerce gaps
 | 9 | Coupon Admin UI | Done | `/admin/coupons` plus `GET/POST /api/admin/coupons` and `PUT/DELETE /api/admin/coupons/[id]` are implemented. |
 | 10 | Order Search by Product Name | Done | Admin order search now matches order number, customer name, item product title, variant name, SKU, and current product/variant rows. |
 | 11 | Inventory Log Viewer | Done | `/admin/products/[id]/inventory` and `GET /api/admin/products/[id]/inventory` show stock changes, reason, order reference, and variant SKU. |
-| 12 | Product Reviews & Ratings | Done | Added `product_reviews`, public review submission, approved reviews on product detail, and `/admin/reviews` moderation. |
-| 13 | Wishlist / Save for Later | Done | Client-side wishlist uses `vanaila_wishlist`, heart controls, header count, and `/wishlist` page. |
+| 12 | Product Reviews & Ratings | Done | Added `product_reviews`, public review submission, approved reviews on product detail, `/admin/reviews` moderation, and customer-owned review history at `/account/reviews`. |
+| 13 | Wishlist / Save for Later | Done | Client-side wishlist uses `vanaila_wishlist`, heart controls, header count, `/wishlist` page, and account dashboard shortcut. |
+| 14 | Customer Account Navigation | Done | `/account` links to profile, orders, wishlist, own reviews, and shop with template-aware button/card styling. |
 
 ## Execution Order
 

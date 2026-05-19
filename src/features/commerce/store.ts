@@ -690,6 +690,11 @@ export type AdminProductReview = ProductReview & {
   productSlug: string;
 };
 
+export type CustomerProductReview = ProductReview & {
+  productTitle: string;
+  productSlug: string;
+};
+
 export async function getApprovedProductReviews(productId: string): Promise<ProductReview[]> {
   const db = getDb();
   const rows = await db
@@ -785,6 +790,36 @@ export async function queryProductReviews(input: ReviewQueryInput = {}) {
   }));
 
   return { reviews, meta: { total: countResult[0]?.count ?? 0, page, pageSize } };
+}
+
+export async function queryCustomerProductReviews(customerId: string): Promise<CustomerProductReview[]> {
+  const db = getDb();
+  const rows = await db
+    .select({
+      id: productReviewsTable.id,
+      productId: productReviewsTable.productId,
+      customerId: productReviewsTable.customerId,
+      authorName: productReviewsTable.authorName,
+      authorEmail: productReviewsTable.authorEmail,
+      rating: productReviewsTable.rating,
+      body: productReviewsTable.body,
+      status: productReviewsTable.status,
+      reviewedAt: productReviewsTable.reviewedAt,
+      createdAt: productReviewsTable.createdAt,
+      updatedAt: productReviewsTable.updatedAt,
+      productTitle: productsTable.title,
+      productSlug: productsTable.slug
+    })
+    .from(productReviewsTable)
+    .innerJoin(productsTable, eq(productsTable.id, productReviewsTable.productId))
+    .where(eq(productReviewsTable.customerId, customerId))
+    .orderBy(desc(productReviewsTable.createdAt));
+
+  return rows.map((row) => ({
+    ...mapProductReviewRow(row),
+    productTitle: row.productTitle,
+    productSlug: row.productSlug
+  }));
 }
 
 export async function updateProductReviewStatus(id: string, status: ProductReviewStatus): Promise<ProductReview | null> {
