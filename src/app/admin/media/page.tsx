@@ -42,10 +42,6 @@ const emptyMediaAsset: MediaAsset = {
   updatedAt: ''
 };
 
-function isImageMimeType(value: string) {
-  return value.toLowerCase().startsWith('image/');
-}
-
 function formatAspectRatio(width: number | null, height: number | null) {
   if (!width || !height) {
     return 'unknown';
@@ -143,8 +139,6 @@ function MediaLibraryManager({ user }: MediaLibraryManagerProps) {
     });
   }, [mediaAssets, query]);
 
-  const uploadRequiresAlt = Boolean(uploadFile && isImageMimeType(uploadFile.type || 'image/png'));
-  const replaceRequiresAlt = Boolean(replaceFile && isImageMimeType(replaceFile.type || form.mimeType || 'image/png'));
   const canReplaceSelected = Boolean(form.id) && isManagedAsset(form);
 
   const resetForm = () => {
@@ -244,10 +238,6 @@ function MediaLibraryManager({ user }: MediaLibraryManagerProps) {
       setUploadError('Please select a file.');
       return;
     }
-    if (uploadRequiresAlt && !uploadAltText.trim()) {
-      setUploadError('Alt text is required for image uploads.');
-      return;
-    }
 
     const body = new FormData();
     body.append('file', uploadFile);
@@ -293,11 +283,6 @@ function MediaLibraryManager({ user }: MediaLibraryManagerProps) {
   };
 
   const handleSave = async () => {
-    if (isImageMimeType(form.mimeType) && !form.altText.trim()) {
-      setError('Alt text is required for image assets.');
-      return;
-    }
-
     setSaving(true);
     setError('');
     setNotice('');
@@ -338,11 +323,6 @@ function MediaLibraryManager({ user }: MediaLibraryManagerProps) {
       setReplaceError('Choose a replacement file first.');
       return;
     }
-    if (replaceRequiresAlt && !(replaceAltText.trim() || form.altText.trim())) {
-      setReplaceError('Alt text is required for image replacements.');
-      return;
-    }
-
     const body = new FormData();
     body.append('file', replaceFile);
     if (replaceAltText.trim()) {
@@ -430,8 +410,8 @@ function MediaLibraryManager({ user }: MediaLibraryManagerProps) {
         </div>
         <ul className="admin-plain-list">
           <li>
-            <strong>Alt text is required for image uploads.</strong>
-            <span>Use human-readable descriptions so editors do not ship inaccessible images to clients.</span>
+            <strong>Add alt text to images.</strong>
+            <span>Recommended for accessibility. You can add or edit alt text at any time from the asset detail panel.</span>
           </li>
           <li>
             <strong>Recommended crops:</strong>
@@ -478,7 +458,7 @@ function MediaLibraryManager({ user }: MediaLibraryManagerProps) {
           <button
             type="button"
             onClick={handleUpload}
-            disabled={!uploadFile || uploading || (uploadRequiresAlt && !uploadAltText.trim())}
+            disabled={!uploadFile || uploading}
           >
             {uploading ? 'Uploading...' : 'Upload file'}
           </button>
@@ -615,7 +595,7 @@ function MediaLibraryManager({ user }: MediaLibraryManagerProps) {
                   <button
                     type="button"
                     onClick={handleReplace}
-                    disabled={!replaceFile || replacing || (replaceRequiresAlt && !(replaceAltText.trim() || form.altText.trim()))}
+                    disabled={!replaceFile || replacing}
                   >
                     {replacing ? 'Replacing...' : 'Replace file'}
                   </button>

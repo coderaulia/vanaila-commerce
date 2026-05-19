@@ -215,6 +215,34 @@ export function validateBlogEditor(post: BlogPost) {
   return issues;
 }
 
+export function validateBlogSaveBlockers(post: BlogPost) {
+  const issues: EditorValidationIssue[] = [];
+  validateSchedule(issues, '', post);
+  if (!isBlank(post.seo.slug) && hasInvalidSlugChars(post.seo.slug.trim())) {
+    issues.push({ path: 'seo.slug', message: 'Slug can only contain lowercase letters, numbers, hyphens, and slashes.' });
+  }
+  return issues;
+}
+
+export function validatePageSaveBlockers(page: LandingPage) {
+  const issues: EditorValidationIssue[] = [];
+  validateSchedule(issues, '', page);
+  if (!isBlank(page.seo.slug) && hasInvalidSlugChars(page.seo.slug.trim())) {
+    issues.push({ path: 'seo.slug', message: 'Slug can only contain lowercase letters, numbers, hyphens, and slashes.' });
+  }
+  if (page.id === 'home') {
+    const blocks = page.homeBlocks ?? [];
+    const ids = new Set<string>();
+    blocks.forEach((block, index) => {
+      if (block.id && ids.has(block.id)) {
+        issues.push({ path: `homeBlocks.${index}.id`, message: 'Block ID must be unique.' });
+      }
+      if (block.id) ids.add(block.id);
+    });
+  }
+  return issues;
+}
+
 export function validatePageEditor(page: LandingPage) {
   const issues: EditorValidationIssue[] = [];
   pushRequired(issues, 'title', page.title, 'Title');

@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 
 import type { BlogPost, Category } from '@/features/cms/types';
 import { fromDatetimeLocalValue, toDatetimeLocalValue } from '@/features/cms/editorSchedule';
-import { formatSavedAtLabel, toFieldErrorMap, validateBlogEditor } from '@/features/cms/editorValidation';
+import { formatSavedAtLabel, toFieldErrorMap, validateBlogEditor, validateBlogSaveBlockers } from '@/features/cms/editorValidation';
 import { getBlogPostPublicationLabel } from '@/features/cms/publicationState';
 import { csrfFetch } from '@/lib/clientCsrf';
 import { AdminActionButton } from '@/components/admin/AdminActionButton';
@@ -98,8 +98,9 @@ export function BlogEditorForm({
   const previewModePath = previewModeHref(previewHref);
   const publicationLabel = getBlogPostPublicationLabel(post);
   const validationIssues = useMemo(() => validateBlogEditor(post), [post]);
+  const saveBlockers = useMemo(() => validateBlogSaveBlockers(post), [post]);
   const fieldErrors = useMemo(() => toFieldErrorMap(validationIssues), [validationIssues]);
-  const canSave = validationIssues.length === 0;
+  const canSave = saveBlockers.length === 0;
   const canDeleteConfirm = deleteConfirmText.trim().toUpperCase() === 'DELETE';
 
   const toggleTag = (slug: string) => {
@@ -117,7 +118,7 @@ export function BlogEditorForm({
     async (mode: SaveMode = 'manual') => {
       if (!canSave) {
         if (mode === 'manual') {
-          setNotice(`Fix ${validationIssues.length} validation issue(s) before saving.`);
+          setNotice(`Fix ${saveBlockers.length} error(s) before saving.`);
         }
         setAutoSaveState('blocked');
         return false;
@@ -169,12 +170,12 @@ export function BlogEditorForm({
 
       return true;
     },
-    [canSave, isDirty, isNew, post, router, validationIssues.length]
+    [canSave, isDirty, isNew, post, router, saveBlockers.length]
   );
 
   const publish = async () => {
-    if (!canSave) {
-      setNotice('Resolve validation issues before publishing.');
+    if (validationIssues.length > 0) {
+      setNotice(`Resolve ${validationIssues.length} issue(s) before publishing.`);
       return;
     }
 
@@ -282,14 +283,14 @@ export function BlogEditorForm({
               Ctrl/Cmd + S to save. Status: {publicationLabel}. {countWords(post.content)} words. {formatSavedAtLabel(lastSavedAt)}.
             </p>
             <p className="admin-subtle">
-              Autosave: {autoSaveState === 'blocked' ? 'blocked by validation' : autoSaveState}
+              Autosave: {autoSaveState === 'blocked' ? 'blocked by errors' : autoSaveState}
             </p>
           </div>
           <div className="admin-actions">
             <span className={`admin-chip ${isDirty ? 'admin-chip-warning' : 'admin-chip-success'}`}>
               {isDirty ? 'Unsaved changes' : 'Saved'}
             </span>
-            {!canSave ? <span className="admin-chip admin-chip-warning">Validation required</span> : null}
+            {validationIssues.length > 0 ? <span className="admin-chip admin-chip-warning">{validationIssues.length} issue(s) before publish</span> : null}
             <AdminActionButton href={previewModePath} icon="visibility" rel="noreferrer" target="_blank" variant="secondary">
               Open preview
             </AdminActionButton>
@@ -301,7 +302,7 @@ export function BlogEditorForm({
             </AdminActionButton>
             {canPublish ? (
               post.status === 'draft' ? (
-                <AdminActionButton icon="publish" variant="primary" onClick={publish} disabled={!canSave}>
+                <AdminActionButton icon="publish" variant="primary" onClick={publish} disabled={validationIssues.length > 0}>
                   Publish now
                 </AdminActionButton>
               ) : (

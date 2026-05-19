@@ -20,10 +20,6 @@ function sha256ForBuffer(buffer: Buffer) {
   return createHash('sha256').update(buffer).digest('hex');
 }
 
-function isImageMimeType(value: string) {
-  return value.toLowerCase().startsWith('image/');
-}
-
 export async function POST(request: Request) {
   const auth = await assertAdminPermission(request, 'media:edit');
   if ('error' in auth) return auth.error;
@@ -37,10 +33,6 @@ export async function POST(request: Request) {
 
     if (!(rawFile instanceof File)) {
       return NextResponse.json({ error: 'No media file provided.' }, { status: 400 });
-    }
-
-    if (isImageMimeType(rawFile.type || 'image/png') && !altText) {
-      return NextResponse.json({ error: 'Alt text is required for image uploads.' }, { status: 400 });
     }
 
     const safeTitle = title || rawFile.name || 'Uploaded media';

@@ -79,7 +79,7 @@ Important behavior:
 Go to `/admin/pages` and open a page.
 
 Current editor capabilities:
-- manual save plus autosave
+- manual save plus autosave — drafts save at any time regardless of completeness; SEO fields only required before publishing
 - dirty-state tracking
 - keyboard save shortcut (`Ctrl+S` / `Cmd+S`)
 - draft preview via preview mode
@@ -145,7 +145,7 @@ Portfolio list supports:
 Go to `/admin/media`.
 
 Current media behavior:
-- image uploads require alt text
+- alt text is recommended for images — add or edit it any time from the asset detail panel
 - duplicate uploads are detected by checksum
 - managed assets can be replaced without changing their URL
 - selected assets show aspect ratio, size, and storage info

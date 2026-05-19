@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import type { CtaStyleToken, HomeBlock, HomeBlockType, LandingPage, PageSection } from '@/features/cms/types';
 import { fromDatetimeLocalValue, toDatetimeLocalValue } from '@/features/cms/editorSchedule';
-import { formatSavedAtLabel, toFieldErrorMap, validatePageEditor } from '@/features/cms/editorValidation';
+import { formatSavedAtLabel, toFieldErrorMap, validatePageEditor, validatePageSaveBlockers } from '@/features/cms/editorValidation';
 import { getLandingPagePublicationLabel } from '@/features/cms/publicationState';
 import { csrfFetch } from '@/lib/clientCsrf';
 import { AdminActionButton } from '@/components/admin/AdminActionButton';
@@ -174,14 +174,15 @@ export function PageEditorForm({ initialPage, canPublish = true, storefrontEnabl
   const previewModePath = previewModeHref(previewHref);
   const publicationLabel = getLandingPagePublicationLabel(page);
   const validationIssues = useMemo(() => validatePageEditor(page), [page]);
+  const saveBlockers = useMemo(() => validatePageSaveBlockers(page), [page]);
   const fieldErrors = useMemo(() => toFieldErrorMap(validationIssues), [validationIssues]);
-  const canSave = validationIssues.length === 0;
+  const canSave = saveBlockers.length === 0;
 
   const savePage = useCallback(
     async (mode: SaveMode = 'manual') => {
       if (!canSave) {
         if (mode === 'manual') {
-          setNotice(`Fix ${validationIssues.length} validation issue(s) before saving.`);
+          setNotice(`Fix ${saveBlockers.length} error(s) before saving.`);
         }
         setAutoSaveState('blocked');
         return false;
@@ -229,7 +230,7 @@ export function PageEditorForm({ initialPage, canPublish = true, storefrontEnabl
 
       return true;
     },
-    [canSave, isDirty, page, validationIssues.length]
+    [canSave, isDirty, page, saveBlockers.length]
   );
 
   useEffect(() => {
@@ -455,7 +456,7 @@ export function PageEditorForm({ initialPage, canPublish = true, storefrontEnabl
             <span className={`admin-chip ${isDirty ? 'admin-chip-warning' : 'admin-chip-success'}`}>
               {isDirty ? 'Unsaved changes' : 'Saved'}
             </span>
-            {!canSave ? <span className="admin-chip admin-chip-warning">Validation required</span> : null}
+            {validationIssues.length > 0 ? <span className="admin-chip admin-chip-warning">{validationIssues.length} issue(s) before publish</span> : null}
             <AdminActionButton href={previewModePath} icon="visibility" rel="noreferrer" target="_blank" variant="secondary">
               Open preview
             </AdminActionButton>
@@ -468,8 +469,8 @@ export function PageEditorForm({ initialPage, canPublish = true, storefrontEnabl
           </div>
         </div>
         {notice ? <p className="admin-subtle">{notice}</p> : null}
-        {validationIssues.length > 0 ? (
-          <p className="admin-error-text">{validationIssues[0].message}</p>
+        {saveBlockers.length > 0 ? (
+          <p className="admin-error-text">{saveBlockers[0].message}</p>
         ) : null}
         <p className="admin-subtle">Draft preview opens the current saved version in preview mode. Save first if you changed the slug or sections.</p>
       </section>

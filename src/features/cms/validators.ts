@@ -382,9 +382,6 @@ export function validateMediaAsset(payload: unknown): MediaAsset | null {
   if (!title || !url) {
     return null;
   }
-  if (mimeType.toLowerCase().startsWith('image/') && !altText) {
-    return null;
-  }
 
   const asNullableInteger = (value: unknown) => {
     if (value === null || typeof value === 'undefined' || value === '') return null;

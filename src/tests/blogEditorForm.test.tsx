@@ -58,12 +58,12 @@ function makeInvalidPost(): BlogPost {
 }
 
 describe('BlogEditorForm', () => {
-  it('blocks save when required fields are invalid', async () => {
+  it('allows save with incomplete fields but shows publish issues', async () => {
     render(<BlogEditorForm initialPost={makeInvalidPost()} />);
 
     await waitFor(() => expect(csrfFetchMock).toHaveBeenCalled());
 
-    expect(screen.getByRole('button', { name: /save post/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /save post/i })).not.toBeDisabled();
     expect(screen.getAllByText('Title is required.').length).toBeGreaterThan(0);
   });
 });
