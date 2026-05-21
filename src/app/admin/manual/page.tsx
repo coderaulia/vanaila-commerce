@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { AdminShell } from '@/components/AdminShell';
 
 const sections = [
@@ -427,7 +428,7 @@ function ManualContent() {
           <div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
               <h3 style={{ margin: 0 }}>Audit Log</h3>
-              <a href="/admin/audit" style={{ padding: '4px 10px', borderRadius: 8, fontSize: '0.78rem', fontWeight: 600, background: '#f0f4fa', border: '1px solid #c8d4e8', color: '#1a2d4c', textDecoration: 'none' }}>Open</a>
+              <Link href="/admin/audit" style={{ padding: '4px 10px', borderRadius: 8, fontSize: '0.78rem', fontWeight: 600, background: '#f0f4fa', border: '1px solid #c8d4e8', color: '#1a2d4c', textDecoration: 'none' }}>Open</Link>
             </div>
             <p className="admin-subtle" style={{ marginBottom: 10 }}>Tracks every admin mutation with timestamp and actor.</p>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
@@ -439,7 +440,7 @@ function ManualContent() {
           <div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
               <h3 style={{ margin: 0 }}>Analytics</h3>
-              <a href="/admin/analytics" style={{ padding: '4px 10px', borderRadius: 8, fontSize: '0.78rem', fontWeight: 600, background: '#f0f4fa', border: '1px solid #c8d4e8', color: '#1a2d4c', textDecoration: 'none' }}>Open</a>
+              <Link href="/admin/analytics" style={{ padding: '4px 10px', borderRadius: 8, fontSize: '0.78rem', fontWeight: 600, background: '#f0f4fa', border: '1px solid #c8d4e8', color: '#1a2d4c', textDecoration: 'none' }}>Open</Link>
             </div>
             <p className="admin-subtle" style={{ marginBottom: 10 }}>Traffic and conversion data with UTM attribution.</p>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>

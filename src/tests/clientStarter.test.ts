@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { defaultContent } from '@/features/cms/defaultContent';
+import { getDefaultContent } from '@/features/cms/defaultContent';
+const defaultContent = getDefaultContent();
 import {
   bootstrapFixtures,
   buildFixtureSeedContent,

@@ -1,19 +1,16 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
 
-import { env } from '@/services/env';
-
 import type { Order } from './types';
 
 const RECEIPT_TTL_MS = 1000 * 60 * 60 * 24 * 30;
 
 function getReceiptSecret() {
-  return (
-    process.env.ORDER_RECEIPT_SECRET?.trim() ||
-    env.passwordPepper ||
-    env.adminPassword ||
-    env.adminToken ||
-    env.databaseUrl
-  );
+  const secret = process.env.ORDER_RECEIPT_SECRET?.trim();
+  if (!secret) {
+    console.error('[orderReceipt] ERROR: ORDER_RECEIPT_SECRET env var is not set. Order receipt tokens will not be issued.');
+    return '';
+  }
+  return secret;
 }
 
 function receiptSignature(order: Pick<Order, 'id' | 'orderNumber' | 'customerId'>, expiresAt: number) {

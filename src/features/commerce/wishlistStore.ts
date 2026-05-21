@@ -33,7 +33,9 @@ function hydrate() {
     const parsed = JSON.parse(raw) as WishlistState;
     if (Array.isArray(parsed.items)) {
       state = {
-        items: parsed.items.filter((item) => item?.productId)
+        items: parsed.items.filter(
+          (item) => item && typeof item === 'object' && typeof item.productId === 'string' && item.productId.length > 0
+        )
       };
       emit();
     }

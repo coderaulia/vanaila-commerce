@@ -1,6 +1,6 @@
 # Commerce Module Improvement Plan
 
-Last audited: 2026-05-18
+Last audited: 2026-05-20
 
 This plan is ordered by production risk first, then by user-facing commerce gaps. Items marked "External" require real production or sandbox credentials and cannot be completed from the local checkout alone.
 
@@ -21,6 +21,20 @@ This plan is ordered by production risk first, then by user-facing commerce gaps
 | 6 | Wrap stock deduction in DB transaction | Done | `processCheckout()` runs checkout, coupon usage, order creation, stock deduction, and inventory logs inside `db.transaction()`. |
 | 7 | Rate limit coupon validation | Done | Coupon validation happens inside the rate-limited checkout route; there is no separate public coupon validation endpoint. |
 | 8 | Sanitize product description HTML | Done | Product details render through `sanitizeProductDescriptionHtml()` with coverage in `src/tests/productDetailHtml.test.ts`. |
+| 15 | Hash customer session tokens before DB storage | Done | `src/features/commerce/customerAuth.ts`. Added `hashSessionToken` (SHA-256); insert hashes token, lookup and delete hash cookie value before querying DB. |
+| 16 | Add CSRF / origin check to customer account routes | Done | `src/app/api/account/logout/route.ts`, login, register. Added `assertTrustedMutationRequest(request)` to all three POST handlers. |
+| 17 | Fix variant PUT/DELETE IDOR — verify variant belongs to product in URL | Done | `src/features/commerce/store.ts` `updateVariant`/`deleteVariant` now accept optional `ownerProductId`; route passes route `[id]` as the ownership constraint. |
+| 18 | Allowlist fields in `updateProduct` — prevent full-body spread into DB | Done | `src/features/commerce/store.ts` `updateProduct` now explicitly picks writable fields instead of spreading `data`. |
+| 19 | Hash raw token in fallback in-memory session store | Done | `src/features/cms/adminAuth.ts`. Fallback Map uses `hashSessionToken(rawToken)` as key on set, get, and delete. |
+| 20 | Wrap `adjustStock` in a DB transaction | Done | `src/features/commerce/store.ts` `adjustStock` wraps read + update + insert in `db.transaction(async tx => { ... })`. |
+| 21 | Validate cart/wishlist items on localStorage hydration | Done | `cartStore.ts` validates `variantId` is non-empty string and clamps `quantity` 1–99. `wishlistStore.ts` validates `productId` is a non-empty string. |
+
+### Low / Info (audit 2026-05-20)
+
+| # | Task | Status | Notes |
+|---|------|--------|-------|
+| 22 | Midtrans webhook replay deduplication | Done | `src/app/api/store/payment/midtrans/route.ts`. Returns 200 early if `order.paymentStatus !== 'pending'` before processing status changes. |
+| 23 | Require `ORDER_RECEIPT_SECRET` env var — stop falling back to DB URL | Done | `src/features/commerce/orderReceipt.ts`. Now requires `ORDER_RECEIPT_SECRET`; logs a loud error and returns empty string (disabling token issuance) if absent. |
 
 ## Priority 3 - Missing Features
 

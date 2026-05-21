@@ -1,4 +1,4 @@
-import { randomBytes, randomUUID, scrypt as nodeScrypt, timingSafeEqual } from 'node:crypto';
+import { createHash, randomBytes, randomUUID, scrypt as nodeScrypt, timingSafeEqual } from 'node:crypto';
 import { promisify } from 'node:util';
 
 import { and, eq, gt } from 'drizzle-orm';
@@ -9,6 +9,10 @@ import { getDb } from '@/db/client';
 import { customerSessionsTable, customersTable } from '@/db/schema';
 
 const scrypt = promisify(nodeScrypt);
+
+function hashSessionToken(token: string) {
+  return createHash('sha256').update(token).digest('hex');
+}
 
 const CUSTOMER_SESSION_COOKIE = 'customer_session';
 const SESSION_TTL_MS = 1000 * 60 * 60 * 24 * 30; // 30 days
@@ -55,6 +59,13 @@ export type LoginResult = {
 
 export type RegisterError = 'email_taken' | 'weak_password';
 
+function isUniqueViolation(err: unknown): boolean {
+  const e = err as { code?: string; cause?: unknown };
+  if (e?.code === '23505') return true;
+  if (e?.cause) return isUniqueViolation(e.cause);
+  return false;
+}
+
 export async function registerCustomer(
   input: RegisterInput
 ): Promise<LoginResult | RegisterError> {
@@ -73,26 +84,31 @@ export async function registerCustomer(
   const now = nowIso();
   const id = existing[0]?.id ?? randomUUID();
 
-  if (existing[0]) {
-    await db
-      .update(customersTable)
-      .set({
+  try {
+    if (existing[0]) {
+      await db
+        .update(customersTable)
+        .set({
+          name: input.name.trim(),
+          phone: input.phone?.trim() ?? '',
+          passwordHash,
+          updatedAt: now
+        })
+        .where(eq(customersTable.id, id));
+    } else {
+      await db.insert(customersTable).values({
+        id,
+        email: input.email.toLowerCase().trim(),
         name: input.name.trim(),
         phone: input.phone?.trim() ?? '',
         passwordHash,
-        updatedAt: now
-      })
-      .where(eq(customersTable.id, id));
-  } else {
-    await db.insert(customersTable).values({
-      id,
-      email: input.email.toLowerCase().trim(),
-      name: input.name.trim(),
-      phone: input.phone?.trim() ?? '',
-      passwordHash,
-      createdAt: now,
-      updatedAt: now,
-    });
+        createdAt: now,
+        updatedAt: now,
+      });
+    }
+  } catch (err) {
+    if (isUniqueViolation(err)) return 'email_taken';
+    throw err;
   }
 
   return createSession(id);
@@ -129,7 +145,7 @@ async function createSession(customerId: string): Promise<LoginResult> {
   await db.insert(customerSessionsTable).values({
     id: randomUUID(),
     customerId,
-    sessionToken,
+    sessionToken: hashSessionToken(sessionToken),
     expiresAt,
     createdAt: now,
   });
@@ -171,7 +187,7 @@ export async function getCustomerSession(): Promise<CustomerSessionUser | null> 
     .innerJoin(customersTable, eq(customerSessionsTable.customerId, customersTable.id))
     .where(
       and(
-        eq(customerSessionsTable.sessionToken, token),
+        eq(customerSessionsTable.sessionToken, hashSessionToken(token)),
         gt(customerSessionsTable.expiresAt, now)
       )
     )
@@ -201,7 +217,7 @@ export async function logoutCustomer(): Promise<void> {
   const db = getDb();
   await db
     .delete(customerSessionsTable)
-    .where(eq(customerSessionsTable.sessionToken, token));
+    .where(eq(customerSessionsTable.sessionToken, hashSessionToken(token)));
 }
 
 export function setSessionCookie(res: NextResponse, token: string, expiresAt: string): void {

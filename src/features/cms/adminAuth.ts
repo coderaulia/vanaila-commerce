@@ -273,7 +273,7 @@ function createFallbackSession(user: AdminSessionUser) {
     if (oldest) store.delete(oldest);
   }
 
-  store.set(rawToken, { user, expiresAt });
+  store.set(hashSessionToken(rawToken), { user, expiresAt });
   return { rawToken, expiresAt };
 }
 
@@ -281,11 +281,11 @@ function getFallbackSession(rawToken: string): AdminSession | null {
   const token = normalize(rawToken);
   if (!token) return null;
 
-  const session = getFallbackSessionStore().get(token);
+  const session = getFallbackSessionStore().get(hashSessionToken(token));
   if (!session) return null;
 
   if (new Date(session.expiresAt).getTime() <= Date.now()) {
-    getFallbackSessionStore().delete(token);
+    getFallbackSessionStore().delete(hashSessionToken(token));
     return null;
   }
 
@@ -296,7 +296,7 @@ async function deleteSessionByRawToken(rawToken: string) {
   const token = normalize(rawToken);
   if (!token) return;
 
-  getFallbackSessionStore().delete(token);
+  getFallbackSessionStore().delete(hashSessionToken(token));
   if (!env.databaseUrl) return;
 
   try {

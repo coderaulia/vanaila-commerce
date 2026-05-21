@@ -26,13 +26,25 @@ function persist() {
   }
 }
 
+function isValidCartItem(item: unknown): item is CartItem {
+  if (!item || typeof item !== 'object') return false;
+  const i = item as Record<string, unknown>;
+  return typeof i.variantId === 'string' && i.variantId.length > 0;
+}
+
 function hydrate() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw) as CartState;
       if (Array.isArray(parsed.items)) {
-        state = parsed;
+        state = {
+          items: parsed.items.filter(isValidCartItem).map((i) => ({
+            ...i,
+            quantity: Math.min(99, Math.max(1, Math.floor(Number(i.quantity) || 1)))
+          })),
+          couponCode: typeof parsed.couponCode === 'string' ? parsed.couponCode : null
+        };
         emit();
       }
     }

@@ -251,9 +251,22 @@ export async function updateProduct(id: string, data: Partial<Product>): Promise
   const db = getDb();
   const now = nowIso();
 
+  const updates: Record<string, unknown> = { updatedAt: now };
+  if (data.title !== undefined) updates.title = data.title;
+  if (data.slug !== undefined) updates.slug = data.slug;
+  if (data.description !== undefined) updates.description = data.description;
+  if (data.shortDescription !== undefined) updates.shortDescription = data.shortDescription;
+  if (data.status !== undefined) updates.status = data.status;
+  if (data.categoryId !== undefined) updates.categoryId = data.categoryId;
+  if (data.images !== undefined) updates.images = data.images;
+  if (data.featured !== undefined) updates.featured = data.featured;
+  if (data.sortOrder !== undefined) updates.sortOrder = data.sortOrder;
+  if (data.seoTitle !== undefined) updates.seoTitle = data.seoTitle;
+  if (data.seoDescription !== undefined) updates.seoDescription = data.seoDescription;
+
   const result = await db
     .update(productsTable)
-    .set({ ...data, updatedAt: now })
+    .set(updates)
     .where(eq(productsTable.id, id))
     .returning();
 
@@ -262,9 +275,11 @@ export async function updateProduct(id: string, data: Partial<Product>): Promise
 
 export async function deleteProduct(id: string): Promise<boolean> {
   const db = getDb();
-  await db.delete(productVariantsTable).where(eq(productVariantsTable.productId, id));
-  const result = await db.delete(productsTable).where(eq(productsTable.id, id)).returning();
-  return result.length > 0;
+  return db.transaction(async (tx) => {
+    await tx.delete(productVariantsTable).where(eq(productVariantsTable.productId, id));
+    const result = await tx.delete(productsTable).where(eq(productsTable.id, id)).returning();
+    return result.length > 0;
+  });
 }
 
 // ─── Product Variants ───────────────────────────────────────────────────────
@@ -293,7 +308,7 @@ export async function createVariant(data: Partial<ProductVariant> & { productId:
   return mapVariantRow(row);
 }
 
-export async function updateVariant(id: string, data: Partial<ProductVariant>): Promise<ProductVariant | null> {
+export async function updateVariant(id: string, data: Partial<ProductVariant>, ownerProductId?: string): Promise<ProductVariant | null> {
   const db = getDb();
   const now = nowIso();
 
@@ -307,18 +322,25 @@ export async function updateVariant(id: string, data: Partial<ProductVariant>): 
   if (data.options !== undefined) updates.options = data.options;
   if (data.sortOrder !== undefined) updates.sortOrder = data.sortOrder;
 
+  const condition = ownerProductId
+    ? and(eq(productVariantsTable.id, id), eq(productVariantsTable.productId, ownerProductId))
+    : eq(productVariantsTable.id, id);
+
   const result = await db
     .update(productVariantsTable)
     .set(updates)
-    .where(eq(productVariantsTable.id, id))
+    .where(condition)
     .returning();
 
   return result[0] ? mapVariantRow(result[0]) : null;
 }
 
-export async function deleteVariant(id: string): Promise<boolean> {
+export async function deleteVariant(id: string, ownerProductId?: string): Promise<boolean> {
   const db = getDb();
-  const result = await db.delete(productVariantsTable).where(eq(productVariantsTable.id, id)).returning();
+  const condition = ownerProductId
+    ? and(eq(productVariantsTable.id, id), eq(productVariantsTable.productId, ownerProductId))
+    : eq(productVariantsTable.id, id);
+  const result = await db.delete(productVariantsTable).where(condition).returning();
   return result.length > 0;
 }
 
@@ -652,19 +674,26 @@ export async function adjustStock(variantId: string, newStock: number, reason: s
   const db = getDb();
   const now = nowIso();
 
-  const variant = await db.select().from(productVariantsTable).where(eq(productVariantsTable.id, variantId)).limit(1);
-  const previousStock = variant[0] ? Number(variant[0].stock) : 0;
+  await db.transaction(async (tx) => {
+    const variant = await tx
+      .select({ stock: productVariantsTable.stock })
+      .from(productVariantsTable)
+      .where(eq(productVariantsTable.id, variantId))
+      .for('update')
+      .limit(1);
+    const previousStock = variant[0] ? Number(variant[0].stock) : 0;
 
-  await db.update(productVariantsTable).set({ stock: newStock, updatedAt: now }).where(eq(productVariantsTable.id, variantId));
+    await tx.update(productVariantsTable).set({ stock: newStock, updatedAt: now }).where(eq(productVariantsTable.id, variantId));
 
-  await db.insert(inventoryLogsTable).values({
-    id: randomUUID(),
-    variantId,
-    previousStock,
-    newStock,
-    reason,
-    orderId: orderId || null,
-    createdAt: now
+    await tx.insert(inventoryLogsTable).values({
+      id: randomUUID(),
+      variantId,
+      previousStock,
+      newStock,
+      reason,
+      orderId: orderId || null,
+      createdAt: now
+    });
   });
 }
 

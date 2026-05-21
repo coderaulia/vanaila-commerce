@@ -2,12 +2,15 @@ import { NextResponse } from 'next/server';
 
 import { modules } from '@/config/modules';
 import { registerCustomer, setSessionCookie } from '@/features/commerce/customerAuth';
-import { assertRateLimit } from '@/services/requestSecurity';
+import { assertRateLimit, assertTrustedMutationRequest } from '@/services/requestSecurity';
 
 export async function POST(request: Request) {
   if (!modules.ENABLE_STORE_MODULE) {
     return NextResponse.json({ error: 'Store module disabled' }, { status: 404 });
   }
+
+  const blocked = assertTrustedMutationRequest(request);
+  if (blocked) return blocked;
 
   const limited = await assertRateLimit(request, 'account:register', 5, 60_000);
   if (limited) return limited;

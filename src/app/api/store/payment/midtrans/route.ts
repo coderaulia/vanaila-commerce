@@ -53,7 +53,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Order not found' }, { status: 404 });
   }
 
-  const orderId = orders[0].id;
+  const order = orders[0];
+
+  // Idempotency: skip if already processed to prevent duplicate email sends on retries
+  if (order.paymentStatus !== 'pending') {
+    return NextResponse.json({ ok: true });
+  }
+
+  const orderId = order.id;
 
   // Map Midtrans status to our payment status
   const { transaction_status, fraud_status } = body;

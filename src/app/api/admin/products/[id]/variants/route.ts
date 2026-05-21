@@ -22,7 +22,7 @@ export async function POST(request: Request, context: RouteContext) {
   return NextResponse.json({ variant }, { status: 201 });
 }
 
-export async function PUT(request: Request) {
+export async function PUT(request: Request, context: RouteContext) {
   if (!modules.ENABLE_STORE_MODULE) {
     return NextResponse.json({ error: 'Store module disabled' }, { status: 404 });
   }
@@ -30,16 +30,17 @@ export async function PUT(request: Request) {
   const auth = await assertAdminPermission(request, 'store:edit');
   if ('error' in auth) return auth.error;
 
+  const { id } = await context.params;
   const body = (await request.json().catch(() => null)) as { id: string } & Partial<ProductVariant> | null;
   if (!body?.id) return NextResponse.json({ error: 'Missing variant id' }, { status: 400 });
 
-  const variant = await updateVariant(body.id, body);
+  const variant = await updateVariant(body.id, body, id);
   if (!variant) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
   return NextResponse.json({ variant });
 }
 
-export async function DELETE(request: Request) {
+export async function DELETE(request: Request, context: RouteContext) {
   if (!modules.ENABLE_STORE_MODULE) {
     return NextResponse.json({ error: 'Store module disabled' }, { status: 404 });
   }
@@ -47,11 +48,12 @@ export async function DELETE(request: Request) {
   const auth = await assertAdminPermission(request, 'store:edit');
   if ('error' in auth) return auth.error;
 
+  const { id } = await context.params;
   const { searchParams } = new URL(request.url);
   const variantId = searchParams.get('variantId');
   if (!variantId) return NextResponse.json({ error: 'Missing variantId' }, { status: 400 });
 
-  const deleted = await deleteVariant(variantId);
+  const deleted = await deleteVariant(variantId, id);
   if (!deleted) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
   return NextResponse.json({ ok: true });

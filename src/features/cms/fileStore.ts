@@ -21,7 +21,7 @@ import {
   uniquePostSlug
 } from './storeShared';
 
-import { defaultContent } from './defaultContent';
+import { getDefaultContent } from './defaultContent';
 
 const DATA_DIR = path.join(process.cwd(), 'data');
 const DATA_FILE = path.join(DATA_DIR, 'content.json');
@@ -60,7 +60,7 @@ async function ensureDataFile(): Promise<void> {
   try {
     await readFile(DATA_FILE, 'utf-8');
   } catch {
-    await writeFile(DATA_FILE, JSON.stringify(defaultContent, null, 2), 'utf-8');
+    await writeFile(DATA_FILE, JSON.stringify(getDefaultContent(), null, 2), 'utf-8');
   }
 }
 
@@ -74,14 +74,15 @@ export async function readContent(): Promise<CmsContent> {
   const raw = await readFile(DATA_FILE, 'utf-8');
   const parsed = safeParse(raw);
   if (!parsed) {
-    await writeFile(DATA_FILE, JSON.stringify(defaultContent, null, 2), 'utf-8');
-    cachedContent = structuredClone(defaultContent);
+    await writeFile(DATA_FILE, JSON.stringify(getDefaultContent(), null, 2), 'utf-8');
+    const fallback = structuredClone(getDefaultContent());
+    cachedContent = fallback;
     cacheTimestamp = now;
-    return cachedContent;
+    return fallback;
   }
 
   const merged = mergeWithDefaults(parsed);
-  const hasAllPages = Object.keys(defaultContent.pages).every(
+  const hasAllPages = Object.keys(getDefaultContent().pages).every(
     (id) => id in (parsed.pages as Record<string, unknown>)
   );
 

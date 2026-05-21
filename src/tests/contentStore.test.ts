@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
 import { queryBlogPosts } from '@/features/cms/contentStore';
-import { defaultContent } from '@/features/cms/defaultContent';
+import { getDefaultContent } from '@/features/cms/defaultContent';
+const defaultContent = getDefaultContent();
 
 describe('content store defaults', () => {
   it('seeds homepage with typed blocks', () => {

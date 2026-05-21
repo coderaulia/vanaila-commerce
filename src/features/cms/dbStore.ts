@@ -10,7 +10,7 @@ import {
   siteSettingsTable
 } from '@/db/schema';
 
-import { defaultContent } from './defaultContent';
+import { getDefaultContent } from './defaultContent';
 import {
   deleteBlogPostCategoryLinks,
   mapBlogPostCategorySlugs,
@@ -291,7 +291,7 @@ async function ensureDbBootstrap() {
         .insert(siteSettingsTable)
         .values({
           id: 'default',
-          payload: defaultContent.settings,
+          payload: getDefaultContent().settings,
           updatedAt: nowIso()
         })
         .onConflictDoNothing();
@@ -300,27 +300,27 @@ async function ensureDbBootstrap() {
     const existingPages = await db.select({ id: pagesTable.id }).from(pagesTable).limit(1);
     if (existingPages.length === 0) {
       await withLegacyScheduleFallback(
-        () => db.insert(pagesTable).values(Object.values(defaultContent.pages).map(pageToRow)).onConflictDoNothing(),
-        () => db.insert(pagesTable).values(Object.values(defaultContent.pages).map(pageToLegacyRow)).onConflictDoNothing()
+        () => db.insert(pagesTable).values(Object.values(getDefaultContent().pages).map(pageToRow)).onConflictDoNothing(),
+        () => db.insert(pagesTable).values(Object.values(getDefaultContent().pages).map(pageToLegacyRow)).onConflictDoNothing()
       );
     }
 
     const existingPosts = await db.select({ id: blogPostsTable.id }).from(blogPostsTable).limit(1);
     if (existingPosts.length === 0) {
       await withLegacyScheduleFallback(
-        () => db.insert(blogPostsTable).values(defaultContent.blogPosts.map(postToRow)).onConflictDoNothing(),
-        () => db.insert(blogPostsTable).values(defaultContent.blogPosts.map(postToLegacyRow)).onConflictDoNothing()
+        () => db.insert(blogPostsTable).values(getDefaultContent().blogPosts.map(postToRow)).onConflictDoNothing(),
+        () => db.insert(blogPostsTable).values(getDefaultContent().blogPosts.map(postToLegacyRow)).onConflictDoNothing()
       );
     }
 
     const existingCategories = await db.select({ id: categoriesTable.id }).from(categoriesTable).limit(1);
     if (existingCategories.length === 0) {
-      await db.insert(categoriesTable).values(defaultContent.categories).onConflictDoNothing();
+      await db.insert(categoriesTable).values(getDefaultContent().categories).onConflictDoNothing();
     }
 
     const existingMedia = await db.select({ id: mediaAssetsTable.id }).from(mediaAssetsTable).limit(1);
     if (existingMedia.length === 0) {
-      await db.insert(mediaAssetsTable).values(defaultContent.mediaAssets).onConflictDoNothing();
+      await db.insert(mediaAssetsTable).values(getDefaultContent().mediaAssets).onConflictDoNothing();
     }
 
     const seededPosts = await withLegacyScheduleFallback(
@@ -333,7 +333,7 @@ async function ensureDbBootstrap() {
 
   try {
     await bootstrapPromise;
-    bootstrapPromise = null; // Reset only on success
+    // Keep the resolved promise — future callers await it instantly, skip re-running
   } catch (error) {
     bootstrapPromise = null; // Reset on error to allow retry
     throw error;
@@ -393,7 +393,7 @@ export async function replaceAllCmsContent(content: CmsContent) {
 export async function getSettings() {
   await ensureDbBootstrap();
   const row = await getDb().select().from(siteSettingsTable).where(eq(siteSettingsTable.id, 'default')).limit(1);
-  return normalizeSettings(row[0]?.payload ?? defaultContent.settings);
+  return normalizeSettings(row[0]?.payload ?? getDefaultContent().settings);
 }
 
 export async function updateSettings(settings: SiteSettings): Promise<SiteSettings> {
@@ -419,7 +419,7 @@ export async function updateSettings(settings: SiteSettings): Promise<SiteSettin
 
 export async function getPages() {
   const pages = await loadAllPages();
-  const next = { ...structuredClone(defaultContent.pages) };
+  const next = { ...structuredClone(getDefaultContent().pages) };
   for (const page of pages) {
     next[page.id] = page;
   }
@@ -610,10 +610,10 @@ export async function createBlogPost(payload?: Partial<BlogPost>): Promise<BlogP
 }
 
 export async function updateBlogPost(id: string, payload: BlogPost): Promise<BlogPost | null> {
-  const existing = await getBlogPostById(id);
+  const posts = await loadAllPosts();
+  const existing = posts.find((p) => p.id === id);
   if (!existing) return null;
 
-  const posts = await loadAllPosts();
   const slug = uniquePostSlug(posts, payload.title, payload.seo.slug, id);
   const next: BlogPost = {
     ...payload,

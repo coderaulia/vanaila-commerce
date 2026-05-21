@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { defaultContent } from '@/features/cms/defaultContent';
+import { getDefaultContent } from '@/features/cms/defaultContent';
+const defaultContent = getDefaultContent();
 import { exportCmsJson, importCmsJson } from '@/features/cms/importExport';
 import type { CmsContent } from '@/features/cms/types';
 
