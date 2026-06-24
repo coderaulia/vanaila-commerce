@@ -1,6 +1,7 @@
 'use client';
 
 import { FormEvent, Suspense, useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 
 import { getAdminSession, loginAdmin } from '@/features/cms/adminClientAuth';
@@ -21,6 +22,7 @@ function AdminLoginContent() {
   const [password, setPassword] = useState('');
   const [pending, setPending] = useState(false);
   const [error, setError] = useState('');
+  const resetSuccess = params.get('reset') === '1';
 
   const nextHref = useMemo(() => sanitizeNext(params.get('next')), [params]);
 
@@ -43,6 +45,11 @@ function AdminLoginContent() {
 
     if (!result.user) {
       setError(result.error || 'Invalid email or password.');
+      return;
+    }
+
+    if (result.mfaRequired) {
+      router.replace(`/admin/login/verify-mfa?next=${encodeURIComponent(nextHref)}`);
       return;
     }
 
@@ -84,7 +91,13 @@ function AdminLoginContent() {
               {pending ? 'Signing in...' : 'Login'}
             </button>
           </form>
+          {resetSuccess ? <p className="mt-3" style={{ color: 'green' }}>Password reset successfully. You can now sign in.</p> : null}
           {error ? <p className="error mt-3">{error}</p> : null}
+          <p className="admin-subtle mt-4">
+            <Link href="/admin/login/forgot-password" className="underline">
+              Forgot password?
+            </Link>
+          </p>
         </div>
       </section>
     </main>

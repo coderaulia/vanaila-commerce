@@ -71,7 +71,10 @@ export async function POST(request: Request) {
     // swallow audit log failures
   }
 
-  const response = NextResponse.json({ ok: true, user: session.user });
+  const payload = session.mfaRequired
+    ? { ok: true, user: session.user, mfaRequired: true }
+    : { ok: true, user: session.user };
+  const response = NextResponse.json(payload);
   return applyAdminSessionCookie(response, session.sessionToken, session.expiresAt);
 }
 

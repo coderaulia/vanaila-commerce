@@ -7,6 +7,8 @@ import type {
   AdminSessionUser
 } from './adminTypes';
 
+export type AdminLoginResult = { user: AdminSessionUser | null; error: string | null; mfaRequired?: boolean };
+
 let cachedSessionUser: AdminSessionUser | null | undefined;
 let sessionRequest: Promise<AdminSessionUser | null> | null = null;
 
@@ -52,7 +54,7 @@ export async function getAdminSession(force = false): Promise<AdminSessionUser |
   return sessionRequest;
 }
 
-export async function loginAdmin(input: AdminLoginPayload): Promise<{ user: AdminSessionUser | null; error: string | null }> {
+export async function loginAdmin(input: AdminLoginPayload): Promise<AdminLoginResult> {
   const response = await csrfFetch('/api/admin/auth', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -65,7 +67,12 @@ export async function loginAdmin(input: AdminLoginPayload): Promise<{ user: Admi
     return { user: null, error: payload?.error || 'Unable to sign in.' };
   }
 
-  const payload = (await response.json()) as AdminAuthResponse;
+  const payload = (await response.json()) as AdminAuthResponse & { mfaRequired?: boolean };
+  if (payload.mfaRequired) {
+    // Don't cache the user yet — MFA verification is still required
+    return { user: payload.user, error: null, mfaRequired: true };
+  }
+
   cachedSessionUser = payload.user;
   return { user: payload.user, error: null };
 }

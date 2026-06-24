@@ -157,6 +157,15 @@ export function AdminNav({ user }: AdminNavProps) {
           ) : null}
         </ul>
 
+        <p className="admin-side-title">Account</p>
+        <ul className="admin-nav-list">
+          <li>
+            <Link href="/admin/security" className={`admin-nav-link ${isActive('/admin/security') ? 'active' : ''}`}>
+              Security
+            </Link>
+          </li>
+        </ul>
+
         {canAccess('team:manage') ? (
           <>
             <p className="admin-side-title">Team</p>

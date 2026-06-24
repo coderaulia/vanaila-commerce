@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 
-import { assertAdminPermission, logAdminAuditEvent } from '@/features/cms/adminAuth';
+import { assertAdminPermission, logAdminAuditEvent, logoutAllAdminSessions } from '@/features/cms/adminAuth';
 import { AdminTeamError, deleteAdminTeamMember, updateAdminTeamMember } from '@/features/cms/adminTeam';
 
 type RouteContext = {
@@ -29,6 +29,8 @@ export async function PUT(request: Request, { params }: RouteContext) {
       }
     | null;
 
+  const passwordProvided = Boolean(body?.password?.trim());
+
   try {
     const member = await updateAdminTeamMember(
       id,
@@ -39,6 +41,14 @@ export async function PUT(request: Request, { params }: RouteContext) {
       },
       session?.user.id ?? null
     );
+
+    if (passwordProvided) {
+      try {
+        await logoutAllAdminSessions(id);
+      } catch {
+        // swallow — password was already changed successfully
+      }
+    }
 
     try {
       await logAdminAuditEvent(request, {
