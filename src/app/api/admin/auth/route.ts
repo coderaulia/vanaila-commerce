@@ -9,6 +9,10 @@ export async function GET(request: Request) {
   if (auth instanceof NextResponse) return auth;
   const session = auth;
 
+  if (session.mfaRequired) {
+    return NextResponse.json({ error: 'mfa_required' }, { status: 403 });
+  }
+
   return NextResponse.json({ ok: true, user: session.user });
 }
 

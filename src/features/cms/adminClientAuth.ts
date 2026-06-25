@@ -11,13 +11,19 @@ export type AdminLoginResult = { user: AdminSessionUser | null; error: string | 
 
 let cachedSessionUser: AdminSessionUser | null | undefined;
 let sessionRequest: Promise<AdminSessionUser | null> | null = null;
+let mfaRedirectNeeded = false;
 
 export function getCachedAdminSession() {
   return cachedSessionUser;
 }
 
+export function isMfaRedirectNeeded() {
+  return mfaRedirectNeeded;
+}
+
 export function primeAdminSession(user: AdminSessionUser | null) {
   cachedSessionUser = user;
+  mfaRedirectNeeded = false;
 }
 
 export async function getAdminSession(force = false): Promise<AdminSessionUser | null> {
@@ -34,11 +40,22 @@ export async function getAdminSession(force = false): Promise<AdminSessionUser |
     cache: 'no-store'
   })
     .then(async (response) => {
+      if (response.status === 403) {
+        const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+        if (payload?.error === 'mfa_required') {
+          mfaRedirectNeeded = true;
+          cachedSessionUser = null;
+          return null;
+        }
+      }
+
       if (!response.ok) {
+        mfaRedirectNeeded = false;
         cachedSessionUser = null;
         return null;
       }
 
+      mfaRedirectNeeded = false;
       const payload = (await response.json()) as AdminAuthResponse;
       cachedSessionUser = payload.user;
       return payload.user;

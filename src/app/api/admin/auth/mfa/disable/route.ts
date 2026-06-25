@@ -8,6 +8,11 @@ export async function POST(request: Request) {
   if (auth instanceof NextResponse) return auth;
   const session = auth;
 
+  // Require MFA to already be verified in this session — prevents disabling MFA with only a stolen password
+  if (session.mfaRequired) {
+    return NextResponse.json({ error: 'mfa_required' }, { status: 403 });
+  }
+
   const body = (await request.json().catch(() => null)) as { password?: string } | null;
   const password = body?.password?.trim() ?? '';
 
