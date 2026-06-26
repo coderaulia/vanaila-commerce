@@ -4,6 +4,7 @@ import { assertAdminPermission } from '@/features/cms/adminAuth';
 import { modules } from '@/config/modules';
 import { queryAllOrdersForExport } from '@/features/commerce/store';
 import type { OrderStatus } from '@/features/commerce/types';
+import { assertRateLimit } from '@/services/requestSecurity';
 
 function escapeCsv(value: string | number | null | undefined): string {
   const str = String(value ?? '');
@@ -39,6 +40,9 @@ export async function GET(request: Request) {
 
   const auth = await assertAdminPermission(request, 'store:manage_orders');
   if ('error' in auth) return auth.error;
+
+  const rl = await assertRateLimit(request, 'admin-orders-export', 10, 60_000);
+  if (rl) return rl;
 
   const { searchParams } = new URL(request.url);
   const status = (searchParams.get('status') ?? 'all') as 'all' | OrderStatus;

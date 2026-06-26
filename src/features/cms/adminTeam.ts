@@ -135,7 +135,12 @@ export async function createAdminTeamMember(input: {
     role,
     createdAt: timestamp,
     updatedAt: timestamp,
-    lastLoginAt: null
+    lastLoginAt: null,
+    resetToken: null,
+    resetTokenExpiresAt: null,
+    mfaSecret: null,
+    mfaEnabled: false,
+    mfaBackupCodes: null
   };
 
   await getDb().insert(adminUsersTable).values(nextUser);

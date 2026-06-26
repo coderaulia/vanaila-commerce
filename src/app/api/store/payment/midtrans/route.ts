@@ -7,6 +7,7 @@ import { updatePaymentStatus } from '@/features/commerce/store';
 import { getDb } from '@/db/client';
 import { ordersTable } from '@/db/schema';
 import { eq } from 'drizzle-orm';
+import { assertRateLimit } from '@/services/requestSecurity';
 
 type MidtransNotification = {
   order_id: string;
@@ -18,6 +19,9 @@ type MidtransNotification = {
 };
 
 export async function POST(request: Request) {
+  const rl = await assertRateLimit(request, 'payment-webhook', 30, 60_000);
+  if (rl) return rl;
+
   if (!modules.ENABLE_STORE_MODULE) {
     return NextResponse.json({ error: 'Store module disabled' }, { status: 404 });
   }

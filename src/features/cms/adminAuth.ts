@@ -31,12 +31,14 @@ type AdminUserRow = typeof adminUsersTable.$inferSelect;
 type AdminSession = {
   user: AdminSessionUser;
   expiresAt: string;
+  mfaRequired?: boolean;
 };
 
 type AdminLoginResult = {
   user: AdminSessionUser;
   sessionToken: string;
   expiresAt: string;
+  mfaRequired?: boolean;
 };
 
 type LoginLockState = {
@@ -237,14 +239,19 @@ async function ensureAdminBootstrap() {
     role: 'super_admin',
     createdAt: now,
     updatedAt: now,
-    lastLoginAt: null
+    lastLoginAt: null,
+    resetToken: null,
+    resetTokenExpiresAt: null,
+    mfaSecret: null,
+    mfaEnabled: false,
+    mfaBackupCodes: null
   };
 
   await getDb().insert(adminUsersTable).values(user);
   return user;
 }
 
-async function createSession(userId: string) {
+async function createSession(userId: string, mfaVerified = true) {
   const rawToken = randomBytes(32).toString('hex');
   const expiresAt = new Date(Date.now() + SESSION_TTL_MS).toISOString();
 
@@ -253,7 +260,8 @@ async function createSession(userId: string) {
     userId,
     sessionToken: hashSessionToken(rawToken),
     expiresAt,
-    createdAt: nowIso()
+    createdAt: nowIso(),
+    mfaVerified
   });
 
   return { rawToken, expiresAt };
@@ -599,9 +607,11 @@ export async function getAdminSession(request: Request): Promise<AdminSession | 
       return null;
     }
 
+    const mfaRequired = user.mfaEnabled && !session.mfaVerified;
     return {
       user: mapAdminUser(user),
-      expiresAt: session.expiresAt
+      expiresAt: session.expiresAt,
+      mfaRequired: mfaRequired || undefined
     };
   } catch (error) {
     if (!isMissingAdminSchemaError(error)) {
@@ -641,6 +651,10 @@ export async function assertAdminPermission(
 
   const session = auth;
 
+  if (session.mfaRequired) {
+    return { error: NextResponse.json({ error: 'mfa_required' }, { status: 403 }) };
+  }
+
   if (!hasAdminPermission(session.user.role, permission)) {
     return { error: NextResponse.json({ error: 'Forbidden' }, { status: 403 }) };
   }
@@ -672,7 +686,8 @@ export async function loginAdminUser(email: string, password: string): Promise<A
       return null;
     }
 
-    const session = await createSession(user.id);
+    const mfaRequired = user.mfaEnabled;
+    const session = await createSession(user.id, !mfaRequired);
     const loginAt = nowIso();
     await getDb()
       .update(adminUsersTable)
@@ -682,7 +697,8 @@ export async function loginAdminUser(email: string, password: string): Promise<A
     return {
       user: mapAdminUser({ ...user, lastLoginAt: loginAt, updatedAt: loginAt }),
       sessionToken: session.rawToken,
-      expiresAt: session.expiresAt
+      expiresAt: session.expiresAt,
+      mfaRequired: mfaRequired || undefined
     };
   } catch (error) {
     if (!isMissingAdminSchemaError(error)) {
@@ -786,4 +802,55 @@ export function applyAdminSessionCookie(response: NextResponse, sessionToken: st
 export function clearAdminSessionCookie(response: NextResponse) {
   response.cookies.set(ADMIN_SESSION_COOKIE, '', getSessionCookieOptions());
   return response;
+}
+
+export async function elevateSessionWithMfa(request: Request, code: string): Promise<boolean> {
+  if (!env.databaseUrl) return false;
+
+  const rawToken = readSessionTokenFromRequest(request);
+  if (!rawToken) return false;
+
+  try {
+    const rows = await getDb()
+      .select()
+      .from(adminSessionsTable)
+      .where(
+        and(
+          eq(adminSessionsTable.sessionToken, hashSessionToken(rawToken)),
+          gt(adminSessionsTable.expiresAt, nowIso())
+        )
+      )
+      .limit(1);
+
+    const session = rows[0];
+    if (!session || session.mfaVerified) return false;
+
+    const user = await findAdminUserById(session.userId);
+    if (!user || !user.mfaEnabled || !user.mfaSecret) return false;
+
+    // Import here to avoid circular dependency
+    const { verifyMfaForUser } = await import('./mfa');
+    const valid = await verifyMfaForUser(user.id, code);
+    if (!valid) return false;
+
+    await getDb()
+      .update(adminSessionsTable)
+      .set({ mfaVerified: true })
+      .where(eq(adminSessionsTable.id, session.id));
+
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export async function verifyAdminPassword(userId: string, password: string): Promise<boolean> {
+  if (!env.databaseUrl) return false;
+  try {
+    const user = await findAdminUserById(userId);
+    if (!user) return false;
+    return verifyPassword(password.trim(), user.passwordHash);
+  } catch {
+    return false;
+  }
 }

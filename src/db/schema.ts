@@ -125,7 +125,12 @@ export const adminUsersTable = pgTable(
     role: text('role').notNull(),
     createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' }).notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'string' }).notNull(),
-    lastLoginAt: timestamp('last_login_at', { withTimezone: true, mode: 'string' })
+    lastLoginAt: timestamp('last_login_at', { withTimezone: true, mode: 'string' }),
+    resetToken: text('reset_token'),
+    resetTokenExpiresAt: timestamp('reset_token_expires_at', { withTimezone: true, mode: 'string' }),
+    mfaSecret: text('mfa_secret'),
+    mfaEnabled: boolean('mfa_enabled').default(false).notNull(),
+    mfaBackupCodes: jsonb('mfa_backup_codes').$type<string[]>()
   },
   (table) => ({
     emailUnique: uniqueIndex('admin_users_email_unique').on(table.email)
@@ -139,7 +144,8 @@ export const adminSessionsTable = pgTable(
     userId: text('user_id').notNull(),
     sessionToken: text('session_token').notNull(),
     expiresAt: timestamp('expires_at', { withTimezone: true, mode: 'string' }).notNull(),
-    createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' }).notNull()
+    createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' }).notNull(),
+    mfaVerified: boolean('mfa_verified').default(false).notNull()
   },
   (table) => ({
     sessionTokenUnique: uniqueIndex('admin_sessions_token_unique').on(table.sessionToken)

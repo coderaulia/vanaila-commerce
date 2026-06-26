@@ -3,7 +3,7 @@
 import { ReactNode, useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 
-import { getAdminSession, getCachedAdminSession } from '@/features/cms/adminClientAuth';
+import { getAdminSession, getCachedAdminSession, isMfaRedirectNeeded } from '@/features/cms/adminClientAuth';
 import type { AdminSessionUser } from '@/features/cms/adminTypes';
 
 type AdminAuthGateProps = {
@@ -35,7 +35,11 @@ export function AdminAuthGate({ children }: AdminAuthGateProps) {
         }
 
         setUser(null);
-        router.replace(loginHref(pathname));
+        if (isMfaRedirectNeeded()) {
+          router.replace(`/admin/login/verify-mfa?next=${encodeURIComponent(pathname)}`);
+        } else {
+          router.replace(loginHref(pathname));
+        }
       })
       .finally(() => {
         if (!cancelled) {

@@ -7,15 +7,23 @@ import type {
   AdminSessionUser
 } from './adminTypes';
 
+export type AdminLoginResult = { user: AdminSessionUser | null; error: string | null; mfaRequired?: boolean };
+
 let cachedSessionUser: AdminSessionUser | null | undefined;
 let sessionRequest: Promise<AdminSessionUser | null> | null = null;
+let mfaRedirectNeeded = false;
 
 export function getCachedAdminSession() {
   return cachedSessionUser;
 }
 
+export function isMfaRedirectNeeded() {
+  return mfaRedirectNeeded;
+}
+
 export function primeAdminSession(user: AdminSessionUser | null) {
   cachedSessionUser = user;
+  mfaRedirectNeeded = false;
 }
 
 export async function getAdminSession(force = false): Promise<AdminSessionUser | null> {
@@ -32,11 +40,22 @@ export async function getAdminSession(force = false): Promise<AdminSessionUser |
     cache: 'no-store'
   })
     .then(async (response) => {
+      if (response.status === 403) {
+        const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+        if (payload?.error === 'mfa_required') {
+          mfaRedirectNeeded = true;
+          cachedSessionUser = null;
+          return null;
+        }
+      }
+
       if (!response.ok) {
+        mfaRedirectNeeded = false;
         cachedSessionUser = null;
         return null;
       }
 
+      mfaRedirectNeeded = false;
       const payload = (await response.json()) as AdminAuthResponse;
       cachedSessionUser = payload.user;
       return payload.user;
@@ -52,7 +71,7 @@ export async function getAdminSession(force = false): Promise<AdminSessionUser |
   return sessionRequest;
 }
 
-export async function loginAdmin(input: AdminLoginPayload): Promise<{ user: AdminSessionUser | null; error: string | null }> {
+export async function loginAdmin(input: AdminLoginPayload): Promise<AdminLoginResult> {
   const response = await csrfFetch('/api/admin/auth', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -65,7 +84,12 @@ export async function loginAdmin(input: AdminLoginPayload): Promise<{ user: Admi
     return { user: null, error: payload?.error || 'Unable to sign in.' };
   }
 
-  const payload = (await response.json()) as AdminAuthResponse;
+  const payload = (await response.json()) as AdminAuthResponse & { mfaRequired?: boolean };
+  if (payload.mfaRequired) {
+    // Don't cache the user yet — MFA verification is still required
+    return { user: payload.user, error: null, mfaRequired: true };
+  }
+
   cachedSessionUser = payload.user;
   return { user: payload.user, error: null };
 }

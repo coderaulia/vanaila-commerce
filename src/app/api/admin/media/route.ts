@@ -4,6 +4,7 @@ import { assertAdminPermission, assertAdminRequest, logAdminAuditEvent } from '@
 import { createMediaAsset, getMediaAssets } from '@/features/cms/contentStore';
 import { revalidatePublicCmsCache } from '@/features/cms/publicCache';
 import { validateMediaAsset } from '@/features/cms/validators';
+import { assertRateLimit } from '@/services/requestSecurity';
 
 export async function GET(request: Request) {
   const auth = await assertAdminRequest(request);
@@ -19,6 +20,9 @@ export async function POST(request: Request) {
   const auth = await assertAdminPermission(request, 'media:edit');
   if ('error' in auth) return auth.error;
   const session = auth.session;
+
+  const rl = await assertRateLimit(request, 'admin-media-upload', 20, 60_000);
+  if (rl) return rl;
 
   const payload = validateMediaAsset(await request.json().catch(() => null));
   if (!payload) {

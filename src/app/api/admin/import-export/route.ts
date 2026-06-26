@@ -12,6 +12,7 @@ import {
   logAdminAuditEvent
 } from '@/features/cms/adminAuth';
 import { revalidatePublicCmsCache } from '@/features/cms/publicCache';
+import { assertRateLimit } from '@/services/requestSecurity';
 
 const collections: CmsImportCollection[] = ['pages', 'blogPosts', 'settings', 'fullSite'];
 
@@ -38,6 +39,9 @@ export async function GET(request: Request) {
   const auth = await assertAdminPermission(request, requiredPermission(collection));
   if ('error' in auth) return auth.error;
   const adminSession = auth.session;
+
+  const rl = await assertRateLimit(request, 'admin-import-export', 3, 60_000);
+  if (rl) return rl;
 
   const payload = await exportCmsJson(collection);
 
@@ -80,6 +84,9 @@ export async function POST(request: Request) {
   const authPerm = await assertAdminPermission(request, requiredPermission(collection));
   if ('error' in authPerm) return authPerm.error;
   const permissionSession = authPerm.session;
+
+  const rlPost = await assertRateLimit(request, 'admin-import-export', 3, 60_000);
+  if (rlPost) return rlPost;
 
   try {
     const result = await importCmsJson(collection, body?.payload ?? null, parseMode(body?.mode));

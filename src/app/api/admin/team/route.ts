@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { assertAdminPermission, logAdminAuditEvent } from '@/features/cms/adminAuth';
 import { AdminTeamError, createAdminTeamMember, listAdminTeamMembers } from '@/features/cms/adminTeam';
 import { env } from '@/services/env';
+import { assertRateLimit } from '@/services/requestSecurity';
 
 function errorResponse(error: unknown) {
   if (error instanceof AdminTeamError) {
@@ -33,7 +34,9 @@ export async function POST(request: Request) {
   const auth = await assertAdminPermission(request, 'team:manage');
   if ('error' in auth) return auth.error;
   const { session } = auth;
-  
+
+  const rl = await assertRateLimit(request, 'admin-team-create', 10, 60_000);
+  if (rl) return rl;
 
   const body = (await request.json().catch(() => null)) as
     | {
